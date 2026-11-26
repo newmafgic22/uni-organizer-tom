@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function GET(_req: Request, { params }: { params: Promise<{ token: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const token = (await params).token.replace(/\.ics$/i, "");
   if (!UUID.test(token)) return new Response("Nicht gefunden", { status: 404 });
   const admin = createAdminClient();
@@ -19,7 +19,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const bis = new Date(jetzt + 240 * 86400000);
   const { termine } = await ladeTermine(admin, von, bis, data.user_id);
   const plan = await ladeLernplan(admin, termine, data.user_id).catch(() => []);
-  return new Response(baueIcs([...termine, ...plan]), {
+  // Standard: nur was es sonst nirgends gibt (Lernplan + ILIAS-Fristen). Vorlesungen und Klausuren aus Portal2
+  // hat Tom schon als eigenen Uni-Kalender in iCloud, sonst wäre alles doppelt. ?alles=1 liefert alles.
+  const alles = new URL(req.url).searchParams.get("alles") === "1";
+  const auswahl = alles ? [...termine, ...plan] : [...termine.filter((t) => t.quelle === "ilias"), ...plan];
+  return new Response(baueIcs(auswahl, alles ? "Uni-App" : "Uni-App Lernplan"), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'inline; filename="uni-app.ics"',

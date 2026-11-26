@@ -56,9 +56,15 @@ export default async function Einstellungen() {
         <section className="karte flex flex-col gap-3">
           <h2 className="font-semibold">Abo-Kalender für iCloud</h2>
           <p className="text-sm text-zinc-500">
-            Diesen Link in iCloud abonnieren: auf <b>icloud.com/calendar</b> links unten auf <b>+</b> → <b>Kalenderabonnement hinzufügen</b>, Link einfügen,
-            Name „Uni-App“. Danach taucht er auf iPhone und iPad automatisch auf (Aktualisierung je nach Gerät alle 15–60 min).
+            Enthält deine <b>Lernblöcke</b> (mit Erinnerung 10 min vorher) und ILIAS-Fristen. Vorlesungen und Klausuren sind nicht drin, die hast du
+            schon im Uni-Kalender, so ist nichts doppelt.
           </p>
+          <ol className="list-decimal pl-5 text-sm text-zinc-500">
+            <li>Link unten kopieren und dir aufs iPhone schicken (oder direkt auf dem iPhone hier öffnen).</li>
+            <li>iPhone: <b>Einstellungen → Apps → Kalender → Kalender-Accounts → Account hinzufügen → Andere → Kalenderabo hinzufügen</b>, Link einfügen.</li>
+            <li>Bei „Account“ <b>iCloud</b> wählen (dann ist er auch auf iPad und PC), Name „Uni-App Lernplan“, <b>„Hinweise entfernen“ ausschalten</b>, damit die Erinnerungen kommen.</li>
+          </ol>
+          <p className="text-xs text-zinc-500">Alles inkl. Vorlesungen: Link mit <code>?alles=1</code> am Ende.</p>
           {feed && (
             <div className="flex gap-2">
               <input readOnly value={feed} className={`${input} font-mono text-xs`} />

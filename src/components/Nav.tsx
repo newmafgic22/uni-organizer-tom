@@ -5,6 +5,7 @@ export function Nav() {
     ["/", "Start"],
     ["/kalender", "Kalender"],
     ["/material", "Material"],
+    ["/lernen", "Lernen"],
     ["/einstellungen", "Einstellungen"],
   ];
   return (

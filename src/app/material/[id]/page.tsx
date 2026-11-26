@@ -18,9 +18,11 @@ export default async function KursMaterial({
   const { supabase } = await requireUser();
   const { data: kurs } = await supabase.from("courses").select("id, name").eq("id", id).maybeSingle();
   if (!kurs) notFound();
-  let abfrage = supabase.from("materials").select("id, course_id, ordner, dateiname, groesse, updated_at").eq("course_id", id);
+  let abfrage = supabase.from("materials").select("id, course_id, ordner, dateiname, groesse, updated_at, hat_text").eq("course_id", id);
   if (q.trim()) abfrage = abfrage.textSearch("such", q, { config: "german", type: "websearch" });
   const { data } = await abfrage.limit(1000);
+  const { data: lt } = await supabase.from("lernthemen").select("id, status, material_id").eq("course_id", id);
+  const themen = Object.fromEntries((lt ?? []).map((t) => [t.material_id, { id: t.id, status: t.status }]));
 
   return (
     <>
@@ -30,7 +32,7 @@ export default async function KursMaterial({
         <h1 className="text-2xl font-semibold">{kurs.name}</h1>
         <Suche q={q} ziel={`/material/${id}`} />
         {q.trim() && <p className="text-sm text-zinc-500">{data?.length ?? 0} Treffer für „{q}“</p>}
-        <MaterialListe dateien={data ?? []} />
+        <MaterialListe dateien={data ?? []} themen={themen} />
       </main>
     </>
   );

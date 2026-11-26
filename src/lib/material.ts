@@ -5,6 +5,7 @@ export type Material = {
   dateiname: string;
   groesse: number | null;
   updated_at: string;
+  hat_text?: boolean;
 };
 
 export function fmtGroesse(b: number | null) {

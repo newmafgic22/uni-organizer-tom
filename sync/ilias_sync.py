@@ -3,6 +3,7 @@ Uni-Organizer Tom - ILIAS-Sync (Etappe 2)
 
 Holt neue/geänderte Dateien und Lernmodule aus deinen ILIAS-Kursen und lädt sie in die App.
 Meldet außerdem Tests, Übungen, Weblinks und externe Lerntools (Liste "Lerntools & Links").
+Liest aus Portal2 deine Prüfungsanmeldungen (Termin, Raum, Form) und Noten.
 
 Einmal einrichten (fragt Uni-ID, Passwort und Sync-Schlüssel ab, speichert sie im
 Windows-Anmeldeinformationsspeicher, NICHT in einer Datei):
@@ -346,6 +347,100 @@ def kursliste(s):
     return [{"ref": k, "name": v} for k, v in kurse.items()]
 
 
+# ---------------------------------------------------------------- Portal2 (Prüfungsanmeldungen, Noten)
+
+PORTAL2 = "https://portal2.uni-mannheim.de/portal2"
+P2_BELEGUNGEN = PORTAL2 + "/pages/cm/exa/enrollment/info/start.xhtml?_flowId=searchOwnEnrollmentInfo-flow&navigationPosition=hisinoneMeinStudium%2ChisinoneOwnEnrollmentList&recordRequest=true"
+P2_LEISTUNGEN = PORTAL2 + "/pages/sul/examAssessment/personExamsReadonly.xhtml?_flowId=examsOverviewForPerson-flow&navigationPosition=hisinoneMeinStudium%2CexamAssessmentForStudent&recordRequest=true"
+
+
+def portal2_login(s, user, pw):
+    """Meldet die (schon bei ILIAS angemeldete) Sitzung auch bei Portal2 an, gleicher Uni-Login."""
+    r = s.get(PORTAL2 + "/api/identityprovider/redirect/4/login")
+    if "idp.uni-mannheim.de" in r.url and "j_password" in r.text:
+        form = soup(r).find("form")
+        data = form_data(form)
+        data.update({"j_username": user, "j_password": pw, "_eventId_proceed": ""})
+        r = s.post(urljoin(r.url, form.get("action")), data=data)
+    r = submit_auto_forms(s, r)
+    if "portal2.uni-mannheim.de" not in r.url:
+        raise RuntimeError("Portal2-Login unklar, gelandet auf " + r.url)
+    return s
+
+
+def _text(html):
+    b = BeautifulSoup(html, "html.parser")
+    for t in b(["script", "style"]):
+        t.decompose()
+    return re.sub(r"\s+", " ", b.get_text(" "))
+
+
+def pruefungen_aus(html):
+    """Liest die Prüfungsanmeldungen aus der Seite "Belegungen"."""
+    text = _text(html)
+    out = []
+    for block in re.split(r"Prüfung\s*:\s*", text)[1:]:
+        kopf = re.match(r"(\S+-P)\s+(.+?)\s+Termine und Räume", block)
+        if not kopf:
+            continue
+        p = {"nummer": kopf.group(1), "titel": kopf.group(2).strip()}
+        t = re.search(r"\w+,\s*(\d{2})\.(\d{2})\.(\d{2,4})\s+von\s+(\d{1,2}:\d{2})\s+bis\s+(\d{1,2}:\d{2})(?:\s*in Raum\s+(.+?))?\s*(?=Prüfungsform|Prüfer|Ihr aktueller|$)", block)
+        if t:
+            jahr = t.group(3) if len(t.group(3)) == 4 else "20" + t.group(3)
+            p.update(datum=f"{jahr}-{t.group(2)}-{t.group(1)}", von=t.group(4), bis=t.group(5), raum=(t.group(6) or "").strip() or None)
+        for feld, muster in (("form", r"Prüfungsform:\s*(.+?)\s*(?=Prüfungsformat|Prüfer|Ihr aktueller|$)"),
+                             ("status", r"Ihr aktueller Status:\s*(\S+)"),
+                             ("versuch", r"Aktueller Versuch:\s*(\d+)")):
+            m = re.search(muster, block)
+            if m:
+                p[feld] = m.group(1).strip()
+        out.append(p)
+    return out
+
+
+def leistungen_aus(html):
+    """Liest Noten/ECTS aus "Meine Leistungen" (aufgeklappt)."""
+    b = BeautifulSoup(html, "html.parser")
+    out = []
+    for tr in b.find_all("tr"):
+        if tr.find("tr"):
+            continue
+        zellen = [re.sub(r"\s+", " ", td.get_text(" ")).strip() for td in tr.find_all("td")]
+        if not zellen or not re.fullmatch(r"\d+(\.\d+)+", zellen[0]):
+            continue
+        rest = zellen[1:]
+        while rest and not rest[0]:
+            rest.pop(0)
+        if len(rest) < 7 or not re.search(r"-(P|K)$", rest[1]):
+            continue
+        zahl = lambda x: float(x.replace(",", ".")) if re.fullmatch(r"\d+[.,]?\d*", x or "") else None
+        freigabe = next((z for z in reversed(rest) if re.match(r"\d{2}\.\d{2}\.\d{4}", z)), None)
+        out.append({"titel": rest[0], "nummer": rest[1], "versuch": rest[2], "note": zahl(rest[4]), "ects": zahl(rest[5]),
+                    "status": rest[7] if len(rest) > 7 else None, "freigabe": freigabe})
+    return out
+
+
+def portal2_sync(s, user, pw, app):
+    portal2_login(s, user, pw)
+    r = s.get(P2_BELEGUNGEN)
+    pruefungen = pruefungen_aus(r.text)
+    # Leistungen: Seite laden und "Alle aufklappen" als normales Formular abschicken
+    r = s.get(P2_LEISTUNGEN)
+    leistungen = []
+    btn = soup(r).find(id=re.compile(r"expandAll"))
+    form = btn.find_parent("form") if btn else None
+    if form:
+        data = form_data(form)
+        data[btn.get("name")] = btn.get("value", "")
+        r = s.post(urljoin(r.url, form.get("action")), data=data)
+    leistungen = leistungen_aus(r.text)
+    if not pruefungen and not leistungen:
+        log("Portal2: nichts gefunden (Seite geändert?)")
+        return
+    app.post(aktion="portal2", pruefungen=pruefungen, leistungen=leistungen)
+    log(f"Portal2: {len(pruefungen)} Prüfungsanmeldungen, {len(leistungen)} Leistungen")
+
+
 def sync():
     user = keyring.get_password(KR, "uni_id")
     pw = keyring.get_password(KR, "uni_passwort") if user else None
@@ -381,6 +476,10 @@ def sync():
                 break
     except Exception as e:
         log("Link-Suche übersprungen:", e)
+    try:
+        portal2_sync(s, user, pw, app)
+    except Exception as e:
+        log("Portal2 übersprungen:", e)
     log(f"=== Fertig: {stat['dateien']} neu/geändert, {stat['fehler']} Fehler ===")
     return 0
 

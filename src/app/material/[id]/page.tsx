@@ -6,6 +6,7 @@ import { LerntoolKacheln, WeitereLinks, type LinkEintrag } from "@/components/Li
 import { requireUser } from "@/lib/supabase/server";
 import { alleEinreihen, autoAus, klausurInfoSpeichern } from "@/app/lernen/actions";
 import { lohntThema } from "@/lib/einreihen";
+import { anzeigeName } from "@/lib/lernen";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export default async function KursMaterial({
       <Nav />
       <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
         <Link href="/material" className="text-sm text-zinc-500">← Alle Kurse</Link>
-        <h1 className="text-2xl font-semibold">{kurs.name}</h1>
+        <h1 className="text-2xl font-semibold">{anzeigeName(kurs.name)}</h1>
         <div className="karte flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             {offen > 0 || !kurs.auto_einreihen ? (

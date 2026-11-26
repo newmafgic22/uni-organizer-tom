@@ -4,7 +4,7 @@ import { Nav } from "@/components/Nav";
 import { Abfrage } from "@/components/Abfrage";
 import { requireUser } from "@/lib/supabase/server";
 import { markdown } from "@/lib/markdown";
-import { STATUS_TEXT, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
+import { STATUS_TEXT, anzeigeName, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
 import { themaLoeschen } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,8 @@ export default async function Thema({
     .eq("id", id)
     .maybeSingle();
   if (!t) notFound();
-  const kurs = (t.courses as unknown as { name: string } | null)?.name;
+  const kursRoh = (t.courses as unknown as { name: string } | null)?.name;
+  const kurs = kursRoh ? anzeigeName(kursRoh) : undefined;
   const katalog = (t.katalog ?? []) as KatalogFrage[];
   const aufgaben = (t.aufgaben ?? []) as Aufgabe[];
 

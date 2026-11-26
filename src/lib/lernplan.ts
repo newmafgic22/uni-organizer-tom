@@ -2,7 +2,7 @@
 // und legt Lernblöcke in freie Zeitfenster (keine Überschneidung mit Vorlesungen/Terminen).
 // Die letzten 2 Tage vor jeder Klausur sind Gesamtwiederholung. Rein berechnet, nichts gespeichert.
 import { istKlausur, type Termin } from "@/lib/ical";
-import { klausurFuer, kurzTitel } from "@/lib/lernen";
+import { anzeigeName, klausurFuer, kurzTitel } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 import { ladeWiederholen, type Status } from "@/lib/wiederholen";
 import { plusTage, tagKey, tagStart } from "@/lib/zeit";
@@ -13,7 +13,7 @@ const BLOCK_MIN = 90;
 const FENSTER = [10, 22]; // Lernblöcke zwischen 10 und 22 Uhr (Berlin)
 const MAX_BLOCKS_TAG = 3;
 
-const kurz = (name: string) => name.replace(/\s*[\[(].*$/, "").replace(/:.*$/, "");
+const kurz = (name: string) => anzeigeName(name);
 
 export function baueLernplan(kurse: PlanKurs[], belegt: Termin[], jetzt = new Date(), app = ""): Termin[] {
   const heute = tagKey(jetzt);

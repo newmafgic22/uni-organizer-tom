@@ -5,7 +5,7 @@ import type { Status } from "@/lib/wiederholen";
 export function WiederholenKarte({ status }: { status: Status[] }) {
   const faellig = status.filter((s) => s.faellig).length;
   const neu = status.filter((s) => s.neu).length;
-  const sicher = status.filter((s) => s.serie >= 2).length;
+  const sicher = status.filter((s) => s.serie >= 1).length;
   if (!status.length) return null;
   return (
     <section className="karte flex flex-wrap items-center justify-between gap-3">

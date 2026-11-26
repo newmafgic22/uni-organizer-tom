@@ -94,3 +94,20 @@ export function wirdZitiert(dateiname: string, vorlesung: string, autorEindeutig
 /** "02 Bildungspsychologie HWS2026 Auffassungen…" → "02 Auffassungen…", "GWP 07 HWS 2026 CurrBed" → "07 CurrBed" */
 export const kurzTitel = (titel: string) =>
   titel.replace(/^(\d+)\s+\S+\s+H[WS]{2}\s?20\d\d\s+/i, "$1 ").replace(/^[A-Z]{2,5} (\d+) H[WS]{2}\s?20\d\d /i, "$1 ");
+
+/** Verständlicher Kursname ohne Modulkürzel und Semesterzusätze:
+ *  "BW 1: Einführung in die Bildungspsychologie [V] (HWS 2026)" → "Bildungspsychologie",
+ *  "CC 303 Quantitative Methoden VL [1. PG]" → "Quantitative Methoden". */
+export function anzeigeName(name: string): string {
+  const praefix = name.match(/^Klausur:?\s+/i)?.[0] ?? "";
+  const kern = name
+    .slice(praefix.length)
+    .replace(/\s*\[[^\]]*\]|\s*\([^)]*\)/g, "")
+    .replace(/^[A-Z]{2,4}\s?\d{1,3}\b\s*(?:B\.\s?Sc\.\s*WiPäd)?\s*:?\s*/, "")
+    .replace(/^FSK\s+/, "")
+    .replace(/,\s*Course\s+\w+$/i, "")
+    .replace(/^Einführung in die\s+/i, "")
+    .replace(/\s+(?:VL|Vorlesung)$/i, "")
+    .trim();
+  return praefix + (kern ? kern.charAt(0).toUpperCase() + kern.slice(1) : name.trim());
+}

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Drucken } from "@/components/Drucken";
 import { requireUser } from "@/lib/supabase/server";
 import { markdown } from "@/lib/markdown";
-import type { Aufgabe, KatalogFrage } from "@/lib/lernen";
+import { anzeigeName, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
 
 export const dynamic = "force-dynamic";
 const AFB = ["", "I", "II", "III"];
@@ -16,7 +16,8 @@ export default async function Druck({ params }: { params: Promise<{ id: string }
     .eq("id", id)
     .maybeSingle();
   if (!t) notFound();
-  const kurs = (t.courses as unknown as { name: string } | null)?.name;
+  const kursRoh = (t.courses as unknown as { name: string } | null)?.name;
+  const kurs = kursRoh ? anzeigeName(kursRoh) : undefined;
   const katalog = (t.katalog ?? []) as KatalogFrage[];
   const aufgaben = (t.aufgaben ?? []) as Aufgabe[];
 

@@ -4,6 +4,7 @@ export function Nav() {
   const links = [
     ["/", "Start"],
     ["/kalender", "Kalender"],
+    ["/material", "Material"],
     ["/einstellungen", "Einstellungen"],
   ];
   return (

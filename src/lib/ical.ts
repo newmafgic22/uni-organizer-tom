@@ -158,6 +158,8 @@ export function baueIcs(termine: Termin[], name = "Uni-App"): string {
       ...(t.ort ? [`LOCATION:${esc(t.ort)}`] : []),
       ...(t.beschreibung ? [`DESCRIPTION:${esc(t.beschreibung)}`] : []),
       `CATEGORIES:${esc(t.kategorie ?? (t.quelle === "ilias" ? "ILIAS" : t.quelle === "portal2" ? "Portal2" : "Sonstig"))}`,
+      // Lernblöcke: Erinnerung 10 Minuten vorher (kommt als Mitteilung auf iPhone/iPad)
+      ...(t.quelle === "lernplan" ? ["BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${esc(t.titel)}`, "TRIGGER:-PT10M", "END:VALARM"] : []),
       "END:VEVENT",
     );
   }

@@ -32,7 +32,7 @@ async function app(body) {
 function claude(prompt, cwd) {
   const r = spawnSync(
     "claude",
-    ["-p", prompt, "--allowedTools", "Read,Write,Edit", "--max-turns", "45", "--output-format", "json"],
+    ["-p", prompt, "--allowedTools", "Read,Write,Edit", "--max-turns", "60", "--output-format", "json"],
     { cwd, encoding: "utf8", timeout: 25 * 60_000, maxBuffer: 50 * 1024 * 1024 },
   );
   const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
@@ -70,11 +70,21 @@ while (erledigt < MAX_THEMEN && Date.now() < ENDE) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "material.txt"), t.text);
   writeFileSync(join(dir, "klausur.txt"), t.klausur_info?.trim() || "Keine besonderen Infos zur Klausur bekannt.");
-  const zusatz = (t.zusatz ?? []).map((z, i) => {
-    const datei = `${z.art}_${i + 1}.txt`;
-    writeFileSync(join(dir, datei), `Datei: ${z.dateiname}\n\n${z.text}`);
-    return `- \`${datei}\` (${z.art === "altklausur" ? "Altklausur" : "Literatur zur Vorlesung"}): ${z.dateiname}`;
-  });
+  const zusatz = [];
+  for (const [i, z] of (t.zusatz ?? []).entries()) {
+    const art = z.art === "altklausur" ? "Altklausur" : "Literatur zur Vorlesung";
+    if (z.pdf_url) {
+      const r = await fetch(z.pdf_url).catch(() => null);
+      if (!r?.ok) continue;
+      const datei = `${z.art}_${i + 1}.pdf`;
+      writeFileSync(join(dir, datei), Buffer.from(await r.arrayBuffer()));
+      zusatz.push(`- \`${datei}\` (${art}, eingescanntes PDF, mit dem Read-Tool seitenweise lesen): ${z.dateiname}`);
+    } else {
+      const datei = `${z.art}_${i + 1}.txt`;
+      writeFileSync(join(dir, datei), `Datei: ${z.dateiname}\n\n${z.text}`);
+      zusatz.push(`- \`${datei}\` (${art}): ${z.dateiname}`);
+    }
+  }
   const prompt = PROMPT.replaceAll("{{KURS}}", t.kurs)
     .replaceAll("{{TITEL}}", t.titel)
     .replaceAll("{{ZUSATZ}}", zusatz.length ? zusatz.join("\n") : "- (keine)");

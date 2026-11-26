@@ -70,3 +70,23 @@ export function pruefeOptionen(x: unknown): Option[] | undefined {
     });
   return o.length >= 2 ? o : undefined;
 }
+
+/** Autor + Jahr aus einem Literatur-Dateinamen: "Fischer2002 Gemeinsame…" → {autor:"Fischer", jahr:"2002"} */
+export function autorJahr(dateiname: string): { autor: string; jahr: string } | null {
+  const m = dateiname.match(/^(?:\d{4}_)?([A-ZÄÖÜ][a-zäöüß]{2,})[\s_-]*(?:[A-Za-zäöüß&\s_-]{0,25}?)[\s_-]*(?:et\s?al\.?[\s_]*)?((?:19|20)\d{2})/);
+  if (m) return { autor: m[1], jahr: m[2] };
+  const v = dateiname.match(/^((?:19|20)\d{2})_([A-ZÄÖÜ][a-zäöüß]{2,})/);
+  return v ? { autor: v[2], jahr: v[1] } : null;
+}
+
+/**
+ * Zitiert der Vorlesungstext diese Literatur? (Autor und Jahr kommen nah beieinander vor)
+ * Mit `autorEindeutig` reicht der Autor mit irgendeinem Jahr (andere Auflage), wenn es keine zweite Datei des Autors gibt.
+ */
+export function wirdZitiert(dateiname: string, vorlesung: string, autorEindeutig = false) {
+  const a = autorJahr(dateiname);
+  if (!a) return false;
+  const autor = a.autor.replace(/ue/g, "(?:ue|ü)").replace(/oe/g, "(?:oe|ö)").replace(/ae/g, "(?:ae|ä)").replace(/u(?=c)/, "(?:u|ü)");
+  const jahr = autorEindeutig ? "(?:19|20)\\d{2}" : a.jahr;
+  return new RegExp(`${autor}[^\\n]{0,60}?${jahr}`, "i").test(vorlesung);
+}

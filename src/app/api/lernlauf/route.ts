@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { createAdminClient } from "@/lib/supabase/server";
-import { istHauptdatei, pruefeListe, vorlesungsNr, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
+import { autorJahr, istHauptdatei, pruefeListe, vorlesungsNr, wirdZitiert, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
 
 // Schnittstelle für den Lernlauf (GitHub Actions).
 // Anmeldung ohne gespeichertes Geheimnis: GitHub stellt jedem Lauf ein signiertes OIDC-Token aus.
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         .update({ status: "laeuft", gestartet_at: new Date().toISOString(), versuche: t.versuche + 1, fehler: null })
         .eq("id", t.id);
       const c = t.courses as unknown as { name: string; klausur_info: string | null } | null;
-      const zusatz = await zusatzMaterial(db, t.course_id, t.material_id, m?.dateiname ?? "");
+      const zusatz = await zusatzMaterial(db, t.course_id, t.material_id, m?.dateiname ?? "", m?.inhalt ?? "");
       aufgaben.push({
         id: t.id,
         titel: t.titel,
@@ -115,30 +115,53 @@ export async function POST(req: NextRequest) {
 }
 
 const MAX_ZUSATZ = 120_000;
+const MAX_PDF = 3;
 
-/** Literatur zur gleichen Vorlesung (gleiche Nummer, keine Folien) und Altklausuren des Kurses. */
-async function zusatzMaterial(db: ReturnType<typeof createAdminClient>, kursId: string, materialId: string, dateiname: string) {
+/**
+ * Literatur zur Vorlesung und Altklausuren des Kurses.
+ * Literatur passt, wenn sie dieselbe Vorlesungsnummer hat oder die Vorlesung sie zitiert (Autor + Jahr im Folientext).
+ * Literatur ohne Text (eingescannt) geht als PDF-Link mit, Claude liest das PDF dann selbst.
+ */
+async function zusatzMaterial(
+  db: ReturnType<typeof createAdminClient>,
+  kursId: string,
+  materialId: string,
+  dateiname: string,
+  vorlesung: string,
+) {
   const nr = vorlesungsNr(dateiname);
   const { data: alle } = await db
     .from("materials")
-    .select("id, ordner, dateiname, hat_text")
+    .select("id, ordner, dateiname, hat_text, storage_path, groesse")
     .eq("course_id", kursId)
-    .eq("hat_text", true)
     .limit(1000);
   const altklausur = (x: { ordner: string | null; dateiname: string }) => /klausur|exam|probeklausur/i.test(`${x.ordner ?? ""} ${x.dateiname}`);
-  const passend = (alle ?? []).filter(
-    (x) => x.id !== materialId && ((nr !== null && vorlesungsNr(x.dateiname) === nr && !istHauptdatei(x.dateiname)) || altklausur(x)),
-  );
+  const autoren = (alle ?? []).map((x) => autorJahr(x.dateiname)?.autor).filter(Boolean);
+  const eindeutig = (d: string) => autoren.filter((a) => a === autorJahr(d)?.autor).length === 1;
+  const passend = (alle ?? []).filter((x) => {
+    if (x.id === materialId || !/\.pdf$|\.txt$|\.pptx$/i.test(x.dateiname)) return false;
+    if (altklausur(x)) return !!x.hat_text;
+    if (istHauptdatei(x.dateiname)) return false;
+    return (nr !== null && vorlesungsNr(x.dateiname) === nr) || wirdZitiert(x.dateiname, vorlesung, eindeutig(x.dateiname));
+  });
   // Literatur zuerst, dann Altklausuren
   passend.sort((a, b) => Number(altklausur(a)) - Number(altklausur(b)));
-  const ergebnis: { art: string; dateiname: string; text: string }[] = [];
+  const ergebnis: { art: string; dateiname: string; text?: string; pdf_url?: string }[] = [];
   let platz = MAX_ZUSATZ;
-  for (const x of passend.slice(0, 8)) {
-    if (platz < 2000) break;
-    const { data } = await db.from("materials").select("inhalt").eq("id", x.id).single();
-    const text = (data?.inhalt ?? "").slice(0, Math.min(platz, 60_000));
-    platz -= text.length;
-    ergebnis.push({ art: altklausur(x) ? "altklausur" : "literatur", dateiname: x.dateiname, text });
+  let pdfs = 0;
+  for (const x of passend.slice(0, 10)) {
+    if (x.hat_text) {
+      if (platz < 2000) continue;
+      const { data } = await db.from("materials").select("inhalt").eq("id", x.id).single();
+      const text = (data?.inhalt ?? "").slice(0, Math.min(platz, 60_000));
+      platz -= text.length;
+      ergebnis.push({ art: altklausur(x) ? "altklausur" : "literatur", dateiname: x.dateiname, text });
+    } else if (pdfs < MAX_PDF && /\.pdf$/i.test(x.dateiname) && (x.groesse ?? 0) < 25_000_000) {
+      const { data } = await db.storage.from("materialien").createSignedUrl(x.storage_path, 3600);
+      if (!data?.signedUrl) continue;
+      pdfs++;
+      ergebnis.push({ art: "literatur", dateiname: x.dateiname, pdf_url: data.signedUrl });
+    }
   }
   return ergebnis;
 }

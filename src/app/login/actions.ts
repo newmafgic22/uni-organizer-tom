@@ -1,34 +1,30 @@
 "use server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail } from "@/lib/allowed";
 
-export async function sendeCode(form: FormData) {
+export async function sendeLink(form: FormData) {
   const email = String(form.get("email") ?? "").trim();
-  const ziel = `/login?schritt=code&email=${encodeURIComponent(email)}`;
   // Fremde E-Mails bekommen dieselbe Antwort, damit man nicht raten kann, wer Zugang hat.
-  if (!isAllowedEmail(email)) redirect(ziel);
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  if (!isAllowedEmail(email)) redirect("/login?status=gesendet");
+  const h = await headers();
+  const origin = h.get("origin") ?? `https://${h.get("host")}`;
+  // "implicit": der Link traegt die Sitzung selbst und funktioniert daher in jedem Browser
+  // und auf jedem Geraet (PKCE ginge nur im Browser, der den Link angefordert hat).
+  const supabase = createPlainClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false },
+  });
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: `${origin}/auth/callback` },
+  });
   if (error) {
     console.error("signInWithOtp:", error.status, error.message);
-    const grund = error.status === 429 ? "limit" : "fehler";
-    redirect(`/login?status=${grund}&email=${encodeURIComponent(email)}`);
+    redirect(`/login?status=${error.status === 429 ? "limit" : "fehler"}`);
   }
-  redirect(ziel);
-}
-
-export async function pruefeCode(form: FormData) {
-  const email = String(form.get("email") ?? "").trim();
-  const token = String(form.get("code") ?? "").replace(/\s/g, "");
-  if (!isAllowedEmail(email)) redirect(`/login?schritt=code&status=falsch&email=${encodeURIComponent(email)}`);
-  const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-  if (error) {
-    console.error("verifyOtp:", error.status, error.message);
-    redirect(`/login?schritt=code&status=falsch&email=${encodeURIComponent(email)}`);
-  }
-  redirect("/");
+  redirect("/login?status=gesendet");
 }
 
 export async function abmelden() {

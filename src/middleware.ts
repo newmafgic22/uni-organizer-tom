@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAllowedEmail } from "@/lib/allowed";
 
 const PUBLIC = ["/login", "/auth", "/api/feed", "/manifest.webmanifest", "/icon", "/apple-icon"];
 
@@ -26,6 +27,16 @@ export async function middleware(request: NextRequest) {
     url.pathname = "/login";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+  // Eingeloggt, aber nicht freigegeben: abmelden
+  if (data.user && !isAllowedEmail(data.user.email) && !path.startsWith("/api/feed")) {
+    await supabase.auth.signOut();
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "?status=fehler";
+    const r = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => r.cookies.set(c));
+    return r;
   }
   return response;
 }

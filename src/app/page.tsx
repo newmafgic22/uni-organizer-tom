@@ -5,6 +5,8 @@ import { LerntoolKacheln, type LinkEintrag } from "@/components/LinkListe";
 import { istKlausur } from "@/lib/ical";
 import { ladeTermine } from "@/lib/daten";
 import { requireUser } from "@/lib/supabase/server";
+import { WiederholenKarte } from "@/components/WiederholenKarte";
+import { ladeWiederholen } from "@/lib/wiederholen";
 import { fmtDatum, fmtTag, fmtZeit, plusTage, tagKey, tagStart, wochenStart } from "@/lib/zeit";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,7 @@ export default async function Start() {
   const { data: kn } = lerntools.length ? await supabase.from("courses").select("id, name") : { data: [] };
   const kursNamen = Object.fromEntries((kn ?? []).map((k) => [k.id, k.name.replace(/\s*[\[(].*$/, "")]));
   const neuTools = lerntools.filter((l) => !l.gesehen).length;
+  const { status: wiederholen } = await ladeWiederholen(supabase);
 
   const heuteListe = termine.filter((t) => t.start < tagStart(plusTage(heute, 1)) && t.ende > von);
   const restWoche = termine.filter((t) => t.start >= tagStart(plusTage(heute, 1)) && t.start < bisWoche);
@@ -76,6 +79,7 @@ export default async function Start() {
             <TerminListe termine={heuteListe} leer="Heute steht nichts an." />
           </section>
         </div>
+        <WiederholenKarte status={wiederholen} />
         {lerntools.length > 0 && (
           <section className="karte">
             <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">

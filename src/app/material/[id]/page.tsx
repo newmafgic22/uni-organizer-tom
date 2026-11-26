@@ -19,7 +19,7 @@ export default async function KursMaterial({
   const { id } = await params;
   const { q = "" } = await searchParams;
   const { supabase } = await requireUser();
-  const { data: kurs } = await supabase.from("courses").select("id, name, klausur_info, auto_einreihen").eq("id", id).maybeSingle();
+  const { data: kurs } = await supabase.from("courses").select("id, name, klausur_info, klausur_datum, auto_einreihen").eq("id", id).maybeSingle();
   if (!kurs) notFound();
   let abfrage = supabase.from("materials").select("id, course_id, ordner, dateiname, groesse, updated_at, hat_text").eq("course_id", id);
   if (q.trim()) abfrage = abfrage.textSearch("such", q, { config: "german", type: "websearch" });
@@ -63,6 +63,15 @@ export default async function KursMaterial({
             </summary>
             <form action={klausurInfoSpeichern} className="mt-2 flex flex-col gap-2">
               <input type="hidden" name="kurs_id" value={kurs.id} />
+              <label className="flex flex-wrap items-center gap-2 text-sm">
+                Klausurtermin (nur nötig, wenn er nicht in Portal2 steht):
+                <input
+                  type="date"
+                  name="klausur_datum"
+                  defaultValue={kurs.klausur_datum ?? ""}
+                  className="rounded-lg border border-zinc-300 bg-transparent px-2 py-1 dark:border-zinc-700"
+                />
+              </label>
               <textarea
                 name="klausur_info"
                 defaultValue={kurs.klausur_info ?? ""}

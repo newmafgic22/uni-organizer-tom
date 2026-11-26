@@ -2,7 +2,7 @@ name: Lernlauf
 
 on:
   schedule:
-    - cron: "23 * * * *" # stündlich; macht weiter, sobald das Abo-Limit wieder frei ist
+    - cron: "23,53 * * * *" # halbstündlich; macht weiter, sobald das Abo-Limit wieder frei ist (läuft nie doppelt, siehe concurrency)
   workflow_dispatch:
     inputs:
       modus:

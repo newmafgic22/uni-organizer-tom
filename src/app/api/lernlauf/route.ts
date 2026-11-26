@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { createAdminClient } from "@/lib/supabase/server";
-import { autorJahr, istHauptdatei, pruefeListe, vorlesungsNr, wirdZitiert, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
+import { ladeTermine } from "@/lib/daten";
+import { istKlausur } from "@/lib/ical";
+import { autorJahr, istHauptdatei, klausurFuer, pruefeListe, vorlesungsNr, wirdZitiert, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
 
 // Schnittstelle für den Lernlauf (GitHub Actions).
 // Anmeldung ohne gespeichertes Geheimnis: GitHub stellt jedem Lauf ein signiertes OIDC-Token aus.
@@ -36,6 +38,7 @@ export async function POST(req: NextRequest) {
     .lt("gestartet_at", new Date(Date.now() - 6 * 3600_000).toISOString());
 
   if (body?.aktion === "anzahl") {
+    await klausurTermineAktualisieren(db).catch(() => {});
     const { count } = await db.from("lernthemen").select("id", { count: "exact", head: true }).eq("status", "wartet").lt("versuche", 3);
     return NextResponse.json({ anzahl: count ?? 0 });
   }
@@ -56,8 +59,10 @@ export async function POST(req: NextRequest) {
       .eq("status", "wartet")
       .lt("versuche", 3)
       .order("sofort", { ascending: false })
+      // strikt in Klausur-Reihenfolge, innerhalb eines Kurses nach Vorlesungsnummer
       .order("klausur_am", { ascending: true, nullsFirst: false })
-      .order("created_at", { ascending: true })
+      .order("course_id", { ascending: true })
+      .order("titel", { ascending: true })
       .limit(anzahl);
     if (nurSofort) q = q.eq("sofort", true);
     const { data: themen, error } = await q;
@@ -171,4 +176,22 @@ async function zusatzMaterial(
     }
   }
   return ergebnis;
+}
+
+/** Klausurtermine der wartenden Themen aus Portal2 auffrischen, damit die Reihenfolge stimmt, wenn sich ein Termin ändert. */
+async function klausurTermineAktualisieren(db: ReturnType<typeof createAdminClient>) {
+  const { data } = await db.from("lernthemen").select("user_id, course_id, courses(name)").eq("status", "wartet");
+  const kurse = new Map<string, { user_id: string; course_id: string; name: string }>();
+  for (const t of data ?? []) kurse.set(t.course_id, { user_id: t.user_id, course_id: t.course_id, name: (t.courses as unknown as { name: string } | null)?.name ?? "" });
+  const nutzer = [...new Set([...kurse.values()].map((k) => k.user_id))];
+  for (const u of nutzer) {
+    const jetzt = new Date();
+    const { termine } = await ladeTermine(db, jetzt, new Date(jetzt.getTime() + 200 * 86400_000), u);
+    const klausuren = termine.filter(istKlausur);
+    for (const k of [...kurse.values()].filter((x) => x.user_id === u)) {
+      const datum = klausurFuer(k.name, klausuren)?.start.toISOString() ?? null;
+      // nur setzen, wenn Portal2 einen Termin kennt (sonst bleibt ein manuell gesetzter Termin stehen)
+      if (datum) await db.from("lernthemen").update({ klausur_am: datum }).eq("course_id", k.course_id).eq("status", "wartet");
+    }
+  }
 }

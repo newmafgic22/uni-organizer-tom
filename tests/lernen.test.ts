@@ -66,3 +66,10 @@ test("wirdZitiert mit eindeutigem Autor akzeptiert andere Auflage", () => {
   assert.equal(wirdZitiert("1992_Bourne-Ekstrand_Statistik.pdf", "Bourne & Ekstrand (2005)"), false);
   assert.equal(wirdZitiert("1992_Bourne-Ekstrand_Statistik.pdf", "Bourne & Ekstrand (2005)", true), true);
 });
+
+import { kurzTitel } from "../src/lib/lernen.ts";
+test("kurzTitel", () => {
+  assert.equal(kurzTitel("02 Bildungspsychologie HWS2026 AuffassungenLernen SelbstreguliertesLernen"), "02 AuffassungenLernen SelbstreguliertesLernen");
+  assert.equal(kurzTitel("11 Bildungspsychologie HSW2026 Unterrichtsqualitaet II"), "11 Unterrichtsqualitaet II");
+  assert.equal(kurzTitel("GWP 07 HWS 2026 CurrBed"), "07 CurrBed");
+});

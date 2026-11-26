@@ -1,6 +1,6 @@
 import ICAL from "ical.js";
 
-export type Quelle = "ilias" | "portal2" | "sonstig";
+export type Quelle = "ilias" | "portal2" | "sonstig" | "lernplan";
 
 export type Termin = {
   id: string;

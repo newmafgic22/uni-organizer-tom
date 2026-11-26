@@ -7,6 +7,7 @@ import { ladeTermine } from "@/lib/daten";
 import { requireUser } from "@/lib/supabase/server";
 import { WiederholenKarte } from "@/components/WiederholenKarte";
 import { ladeWiederholen } from "@/lib/wiederholen";
+import { ladeLernplan } from "@/lib/lernplan";
 import { fmtDatum, fmtTag, fmtZeit, plusTage, tagKey, tagStart, wochenStart } from "@/lib/zeit";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +32,10 @@ export default async function Start() {
   const neuTools = lerntools.filter((l) => !l.gesehen).length;
   const { status: wiederholen } = await ladeWiederholen(supabase);
 
-  const heuteListe = termine.filter((t) => t.start < tagStart(plusTage(heute, 1)) && t.ende > von);
-  const restWoche = termine.filter((t) => t.start >= tagStart(plusTage(heute, 1)) && t.start < bisWoche);
+  const plan = await ladeLernplan(supabase, termine).catch(() => []);
+  const mitPlan = [...termine, ...plan].sort((a, b) => a.start.getTime() - b.start.getTime());
+  const heuteListe = mitPlan.filter((t) => t.start < tagStart(plusTage(heute, 1)) && t.ende > von);
+  const restWoche = mitPlan.filter((t) => t.start >= tagStart(plusTage(heute, 1)) && t.start < bisWoche);
   const klausuren = termine.filter(istKlausur);
   const naechste = klausuren[0];
   const tageBis = naechste ? Math.ceil((naechste.start.getTime() - Date.now()) / 86400000) : null;

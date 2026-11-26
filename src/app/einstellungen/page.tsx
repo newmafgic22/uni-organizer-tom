@@ -4,16 +4,16 @@ import { Kopieren } from "@/components/Kopieren";
 import { ladeQuellen } from "@/lib/daten";
 import { requireUser } from "@/lib/supabase/server";
 import { abmelden } from "@/app/login/actions";
-import { feedNeu, quelleHinzufuegen, quelleLoeschen } from "./actions";
+import { feedNeu, quelleHinzufuegen, quelleLoeschen, syncNeu } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Einstellungen() {
   const { supabase, user } = await requireUser();
   const quellen = await ladeQuellen(supabase);
-  let { data: settings } = await supabase.from("user_settings").select("feed_token").maybeSingle();
+  let { data: settings } = await supabase.from("user_settings").select("feed_token, sync_token").maybeSingle();
   if (!settings && user) {
-    const ins = await supabase.from("user_settings").insert({ user_id: user.id }).select("feed_token").single();
+    const ins = await supabase.from("user_settings").insert({ user_id: user.id }).select("feed_token, sync_token").single();
     settings = ins.data;
   }
   const h = await headers();
@@ -67,6 +67,22 @@ export default async function Einstellungen() {
           )}
           <form action={feedNeu}>
             <button className="text-sm text-zinc-500 underline">Neuen Link erzeugen (alter funktioniert dann nicht mehr)</button>
+          </form>
+        </section>
+
+        <section className="karte flex flex-col gap-3">
+          <h2 className="font-semibold">PC-Sync (ILIAS-Dateien)</h2>
+          <p className="text-sm text-zinc-500">
+            Diesen Schlüssel fragt das Sync-Skript beim Einrichten ab (<code>python ilias_sync.py --einrichten</code>). Wie ein Passwort behandeln.
+          </p>
+          {settings?.sync_token && (
+            <div className="flex gap-2">
+              <input readOnly value={settings.sync_token} className={`${input} font-mono text-xs`} />
+              <Kopieren text={settings.sync_token} />
+            </div>
+          )}
+          <form action={syncNeu}>
+            <button className="text-sm text-zinc-500 underline">Neuen Schlüssel erzeugen (Skript muss dann neu eingerichtet werden)</button>
           </form>
         </section>
 

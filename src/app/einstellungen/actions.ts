@@ -31,3 +31,10 @@ export async function feedNeu() {
   await supabase.from("user_settings").upsert({ user_id: user.id, feed_token: crypto.randomUUID() });
   revalidatePath("/einstellungen");
 }
+
+export async function syncNeu() {
+  const { supabase, user } = await requireUser();
+  if (!user) return;
+  await supabase.from("user_settings").update({ sync_token: crypto.randomUUID() }).eq("user_id", user.id);
+  revalidatePath("/einstellungen");
+}

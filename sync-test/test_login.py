@@ -69,14 +69,12 @@ def submit_auto_forms(s, r, max_steps=5):
     return r
 
 
-def test_ilias(user, pw):
-    print("\n=== ILIAS ===")
-    s = requests.Session()
-    s.headers.update(UA)
-    r = s.get(f"{ILIAS}/login.php")
+def shib_login(s, start_url, user, pw, host):
+    """Login ueber den Uni-Mannheim-IdP (Shibboleth). Gibt (ok, response) zurueck."""
+    r = s.get(start_url)
     if "idp.uni-mannheim.de" not in r.url:
         print("Unerwartet: keine Weiterleitung zum Uni-Login, sondern", r.url)
-        return False
+        return False, r
     form = soup(r).find("form")
     data = form_data(form)
     data.update({"j_username": user, "j_password": pw, "_eventId_proceed": ""})
@@ -84,10 +82,20 @@ def test_ilias(user, pw):
     if "j_password" in r.text and "idp.uni-mannheim.de" in r.url:
         err = soup(r).select_one(".form-error, .alert, .error")
         print("Login FEHLGESCHLAGEN:", err.get_text(" ", strip=True) if err else "(Uni-ID/Passwort falsch?)")
-        return False
+        return False, r
     r = submit_auto_forms(s, r)
-    if "ilias.uni-mannheim.de" not in r.url:
+    if host not in r.url:
         print("Login unklar, gelandet auf:", r.url)
+        return False, r
+    return True, r
+
+
+def test_ilias(user, pw):
+    print("\n=== ILIAS ===")
+    s = requests.Session()
+    s.headers.update(UA)
+    ok, r = shib_login(s, f"{ILIAS}/login.php", user, pw, "ilias.uni-mannheim.de")
+    if not ok:
         return False
     print("Login OK  ->", r.url.split("?")[0])
     dump("ilias_nach_login", r)
@@ -123,26 +131,17 @@ def test_portal2(user, pw):
     s = requests.Session()
     s.headers.update(UA)
     start = f"{PORTAL}/portal2/pages/cs/sys/portal/hisinoneStartPage.faces"
-    r = s.get(start)
-    form = None
-    for f in soup(r).find_all("form"):
-        if f.find("input", {"name": "asdf"}):
-            form = f
-            break
-    if not form:
-        print("Login-Formular nicht gefunden.")
-        return False
-    data = form_data(form)
-    data.update({"asdf": user, "fdsa": pw})
-    r = s.post(requests.compat.urljoin(r.url, form.get("action")), data=data)
+    s.get(start)  # Session-Cookie holen
+    ok, r = shib_login(s, f"{PORTAL}/portal2/api/identityprovider/redirect/4/login", user, pw,
+                       "portal2.uni-mannheim.de")
     dump("portal2_nach_login", r)
-    r2 = s.get(start)
-    dump("portal2_startseite_danach", r2)
+    r = s.get(start)
+    dump("portal2_startseite_danach", r)
     page = soup(r)
-    logged_in = page.find("input", {"name": "fdsa"}) is None or "Abmelden" in r.text or "logout" in r.text.lower()
-    if not logged_in or "Anmeldung fehlgeschlagen" in r.text:
-        msg = page.select_one(".error, .alert, .messages")
-        print("Login FEHLGESCHLAGEN:", msg.get_text(" ", strip=True)[:200] if msg else "(Uni-ID/Passwort falsch?)")
+    if not ok:
+        return False
+    if page.find("input", {"name": "fdsa"}) is not None and "Abmelden" not in r.text:
+        print("Login unklar: Startseite zeigt noch das Login-Formular.")
         return False
     print("Login OK  ->", r.url.split("?")[0])
 

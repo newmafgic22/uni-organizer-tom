@@ -1,5 +1,6 @@
 import type { Termin } from "@/lib/ical";
 import { fmtZeit } from "@/lib/zeit";
+import { anzeigeName } from "@/lib/lernen";
 
 const FARBE: Record<string, string> = {
   ilias: "bg-sky-500",
@@ -21,7 +22,7 @@ export function TerminZeile({ t }: { t: Termin }) {
             {t.titel}
           </a>
         ) : (
-          <div className="font-medium leading-snug break-words">{t.titel}</div>
+          <div className="font-medium leading-snug break-words">{t.quelle === "portal2" ? anzeigeName(t.titel) : t.titel}</div>
         )}
         {t.ort && <div className="text-sm text-zinc-500 dark:text-zinc-400 break-words">{t.ort}</div>}
       </div>

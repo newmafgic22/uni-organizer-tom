@@ -28,6 +28,9 @@ jobs:
           OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           API: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          # Pause (Tom braucht das Abo-Guthaben woanders): geplante Läufe bis PAUSE_BIS überspringen, danach automatisch weiter
+          PAUSE_BIS="2026-11-26T22:15:00Z"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$(date -u +%s)" -lt "$(date -u -d "$PAUSE_BIS" +%s)" ]; then echo "Pause bis $PAUSE_BIS – überspringe."; echo "los=nein" >> "$GITHUB_OUTPUT"; exit 0; fi
           if [ -z "$OAUTH$API" ]; then echo "Kein CLAUDE_CODE_OAUTH_TOKEN/ANTHROPIC_API_KEY gesetzt – überspringe."; echo "los=nein" >> "$GITHUB_OUTPUT"; else echo "los=ja" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/checkout@v4
         if: steps.check.outputs.los == 'ja'

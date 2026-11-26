@@ -28,6 +28,13 @@ export async function POST(req: NextRequest) {
   const db = createAdminClient();
   const body = await req.json().catch(() => null);
 
+  // Endgültig fehlgeschlagene Themen nach 6 Stunden noch einmal versuchen (oft war es nur ein Aussetzer)
+  await db
+    .from("lernthemen")
+    .update({ status: "wartet", versuche: 0 })
+    .eq("status", "fehler")
+    .lt("gestartet_at", new Date(Date.now() - 6 * 3600_000).toISOString());
+
   if (body?.aktion === "anzahl") {
     const { count } = await db.from("lernthemen").select("id", { count: "exact", head: true }).eq("status", "wartet").lt("versuche", 3);
     return NextResponse.json({ anzahl: count ?? 0 });

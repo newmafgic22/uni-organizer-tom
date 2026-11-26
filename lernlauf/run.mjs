@@ -1,5 +1,5 @@
 // Lernlauf: holt Themen aus der App, lässt Claude Code Lernmaterial schreiben und lädt es hoch.
-// Läuft stündlich in GitHub Actions. Macht so viele Themen, bis das Abo-Limit erreicht ist.
+// Läuft in GitHub Actions und stößt sich selbst wieder an, solange etwas in der Warteschlange ist. Macht so viele Themen, bis das Abo-Limit erreicht ist.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -111,7 +111,8 @@ while (erledigt < MAX_THEMEN && Date.now() < ENDE) {
     .replaceAll("{{ZUSATZ}}", zusatz.length ? zusatz.join("\n") : "- (keine)");
   const c = claude(prompt, dir);
   if (c.limit) {
-    console.log("Abo-Limit erreicht, nächster Versuch in einer Stunde.");
+    console.log("Abo-Limit erreicht, nächster Versuch in etwa 30 Minuten.");
+    if (process.env.GITHUB_OUTPUT) writeFileSync(process.env.GITHUB_OUTPUT, "limit=ja\n", { flag: "a" });
     await app({ aktion: "fehler", id: t.id, meldung: "Limit erreicht, wird später fortgesetzt", limit: true }).catch(() => {});
     break;
   }

@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: write # damit sich der Lernlauf selbst wieder anstoßen kann (geplante Läufe kommen bei GitHub oft nicht)
   id-token: write # für die Anmeldung bei der App (ohne gespeichertes Geheimnis)
 
 concurrency:
@@ -20,7 +21,7 @@ concurrency:
 jobs:
   lernlauf:
     runs-on: ubuntu-latest
-    timeout-minutes: 58
+    timeout-minutes: 95 # 50 Min. Arbeit + ggf. 30 Min. Warten aufs Abo-Limit
     steps:
       - name: Token vorhanden?
         id: check
@@ -46,6 +47,7 @@ jobs:
         if: steps.queue.outputs.anzahl > 0
         run: npm install -g @anthropic-ai/claude-code
       - name: Lernmaterial erstellen
+        id: lauf
         if: steps.queue.outputs.anzahl > 0
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -53,3 +55,13 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
           MODUS: ${{ github.event.inputs.modus || 'alle' }}
         run: node lernlauf/run.mjs
+      - name: Nächsten Lauf anstoßen
+        # Solange etwas wartete, gleich weitermachen; beim Abo-Limit erst nach 30 Minuten erneut versuchen.
+        if: always() && steps.queue.outputs.anzahl > 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIMIT: ${{ steps.lauf.outputs.limit }}
+          ERGEBNIS: ${{ steps.lauf.outcome }}
+        run: |
+          if [ "$LIMIT" = "ja" ] || [ "$ERGEBNIS" != "success" ]; then echo "Abo-Limit oder Fehler: warte 30 Minuten."; sleep 1800; fi
+          gh workflow run lernlauf.yml --repo "$GITHUB_REPOSITORY" --ref main -f modus=alle

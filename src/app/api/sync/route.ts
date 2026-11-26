@@ -1,5 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { ladeTermine } from "@/lib/daten";
+import { istKlausur } from "@/lib/ical";
+import { klausurFuer } from "@/lib/lernen";
+import { lohntThema, themenAnlegen } from "@/lib/einreihen";
 
 // Schnittstelle für das Sync-Skript auf Toms PC.
 // Anmeldung per "Authorization: Bearer <sync_token>" (steht in den Einstellungen).
@@ -77,8 +81,28 @@ export async function POST(req: NextRequest) {
   if (body.aktion === "ende") {
     const ids: string[] = Array.isArray(body.kurs_ids) ? body.kurs_ids.map(String) : [];
     if (ids.length) await db.from("courses").update({ zuletzt_sync: new Date().toISOString() }).eq("user_id", userId).in("id", ids);
-    return NextResponse.json({ ok: true });
+    const neu = await autoEinreihen(db, userId).catch(() => 0);
+    return NextResponse.json({ ok: true, neu_eingereiht: neu });
   }
 
   return NextResponse.json({ fehler: "unbekannte aktion" }, { status: 400 });
+}
+
+/** Neue Vorlesungen in Kursen mit „Alle einreihen“ automatisch in die Warteschlange legen. */
+async function autoEinreihen(db: ReturnType<typeof createAdminClient>, userId: string) {
+  const { data: kurse } = await db.from("courses").select("id, name").eq("user_id", userId).eq("auto_einreihen", true);
+  if (!kurse?.length) return 0;
+  const jetzt = new Date();
+  const klausuren = await ladeTermine(db, jetzt, new Date(jetzt.getTime() + 200 * 86400_000), userId)
+    .then((r) => r.termine.filter(istKlausur))
+    .catch(() => []);
+  let n = 0;
+  for (const k of kurse) {
+    const { data: mats } = await db.from("materials").select("id, course_id, dateiname, hat_text").eq("course_id", k.id).limit(1000);
+    const { data: lt } = await db.from("lernthemen").select("material_id").eq("course_id", k.id);
+    const vorhanden = new Set((lt ?? []).map((t) => t.material_id));
+    const offen = (mats ?? []).filter((m) => lohntThema(m) && !vorhanden.has(m.id));
+    n += await themenAnlegen(db, userId, offen, klausurFuer(k.name, klausuren)?.start.toISOString() ?? null);
+  }
+  return n;
 }

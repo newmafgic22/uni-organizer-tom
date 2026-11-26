@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { createAdminClient } from "@/lib/supabase/server";
-import { pruefeListe, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
+import { istHauptdatei, pruefeListe, vorlesungsNr, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
 
 // Schnittstelle für den Lernlauf (GitHub Actions).
 // Anmeldung ohne gespeichertes Geheimnis: GitHub stellt jedem Lauf ein signiertes OIDC-Token aus.
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const anzahl = Math.min(Math.max(Number(body.anzahl) || 1, 1), 5);
     let q = db
       .from("lernthemen")
-      .select("id, titel, material_id, versuche, courses(name)")
+      .select("id, titel, material_id, course_id, versuche, courses(name, klausur_info)")
       .eq("status", "wartet")
       .lt("versuche", 3)
       .order("sofort", { ascending: false })
@@ -63,8 +63,17 @@ export async function POST(req: NextRequest) {
         .from("lernthemen")
         .update({ status: "laeuft", gestartet_at: new Date().toISOString(), versuche: t.versuche + 1, fehler: null })
         .eq("id", t.id);
-      const kurs = (t.courses as unknown as { name: string } | null)?.name ?? "";
-      aufgaben.push({ id: t.id, titel: t.titel, kurs, dateiname: m?.dateiname, text: m?.inhalt ?? "" });
+      const c = t.courses as unknown as { name: string; klausur_info: string | null } | null;
+      const zusatz = await zusatzMaterial(db, t.course_id, t.material_id, m?.dateiname ?? "");
+      aufgaben.push({
+        id: t.id,
+        titel: t.titel,
+        kurs: c?.name ?? "",
+        klausur_info: c?.klausur_info ?? "",
+        dateiname: m?.dateiname,
+        text: m?.inhalt ?? "",
+        zusatz,
+      });
     }
     return NextResponse.json({ themen: aufgaben });
   }
@@ -103,4 +112,33 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ fehler: "unbekannte aktion" }, { status: 400 });
+}
+
+const MAX_ZUSATZ = 120_000;
+
+/** Literatur zur gleichen Vorlesung (gleiche Nummer, keine Folien) und Altklausuren des Kurses. */
+async function zusatzMaterial(db: ReturnType<typeof createAdminClient>, kursId: string, materialId: string, dateiname: string) {
+  const nr = vorlesungsNr(dateiname);
+  const { data: alle } = await db
+    .from("materials")
+    .select("id, ordner, dateiname, hat_text")
+    .eq("course_id", kursId)
+    .eq("hat_text", true)
+    .limit(1000);
+  const altklausur = (x: { ordner: string | null; dateiname: string }) => /klausur|exam|probeklausur/i.test(`${x.ordner ?? ""} ${x.dateiname}`);
+  const passend = (alle ?? []).filter(
+    (x) => x.id !== materialId && ((nr !== null && vorlesungsNr(x.dateiname) === nr && !istHauptdatei(x.dateiname)) || altklausur(x)),
+  );
+  // Literatur zuerst, dann Altklausuren
+  passend.sort((a, b) => Number(altklausur(a)) - Number(altklausur(b)));
+  const ergebnis: { art: string; dateiname: string; text: string }[] = [];
+  let platz = MAX_ZUSATZ;
+  for (const x of passend.slice(0, 8)) {
+    if (platz < 2000) break;
+    const { data } = await db.from("materials").select("inhalt").eq("id", x.id).single();
+    const text = (data?.inhalt ?? "").slice(0, Math.min(platz, 60_000));
+    platz -= text.length;
+    ergebnis.push({ art: altklausur(x) ? "altklausur" : "literatur", dateiname: x.dateiname, text });
+  }
+  return ergebnis;
 }

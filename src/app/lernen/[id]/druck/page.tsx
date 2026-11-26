@@ -46,9 +46,27 @@ export default async function Druck({ params }: { params: Promise<{ id: string }
             {katalog.map((k, i) => (
               <tr key={i} className="align-top">
                 <td className="border p-1">{i + 1}</td>
-                <td className="border p-1 whitespace-pre-line">{k.frage}</td>
+                <td className="border p-1 whitespace-pre-line">
+                  {k.frage}
+                  {k.optionen && (
+                    <ul className="mt-1 list-none">
+                      {k.optionen.map((o, j) => (
+                        <li key={j}>☐ {String.fromCharCode(97 + j)}) {o.text}</li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
                 <td className="border p-1 text-center">{AFB[k.afb]}</td>
-                <td className="border p-1 whitespace-pre-line">{k.antwort}</td>
+                <td className="border p-1 whitespace-pre-line">
+                  {k.optionen && (
+                    <b>
+                      Richtig:{" "}
+                      {k.optionen.map((o, j) => (o.richtig ? String.fromCharCode(97 + j) : null)).filter(Boolean).join(", ")}
+                      {"\n"}
+                    </b>
+                  )}
+                  {k.antwort}
+                </td>
               </tr>
             ))}
           </tbody>

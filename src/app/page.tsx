@@ -19,20 +19,23 @@ export default async function Start() {
   const von = tagStart(heute);
   const bisWoche = tagStart(plusTage(montag, 7));
   const bisKlausur = tagStart(plusTage(heute, 180));
-  const { termine, fehler, anzahlQuellen } = await ladeTermine(supabase, von, bisKlausur);
-  // Lerntools (z. B. CoTutor), Tests und Übungen, die der Sync gefunden hat
-  const { data: lk } = await supabase
-    .from("links")
-    .select("id, course_id, url, titel, kategorie, wichtig, gesehen, ausgeblendet, fundstelle, quelle")
-    .eq("wichtig", true)
-    .eq("ausgeblendet", false);
+  // Alles Unabhängige parallel laden (jede Abfrage ist ein Netzwerk-Roundtrip)
+  const [{ termine, fehler, anzahlQuellen }, { data: lk }, { data: kn }, { status: wiederholen }] = await Promise.all([
+    ladeTermine(supabase, von, bisKlausur),
+    // Lerntools (z. B. CoTutor), Tests und Übungen, die der Sync gefunden hat
+    supabase
+      .from("links")
+      .select("id, course_id, url, titel, kategorie, wichtig, gesehen, ausgeblendet, fundstelle, quelle")
+      .eq("wichtig", true)
+      .eq("ausgeblendet", false),
+    supabase.from("courses").select("id, name"),
+    ladeWiederholen(supabase),
+  ]);
   const lerntools: LinkEintrag[] = lk ?? [];
-  const { data: kn } = lerntools.length ? await supabase.from("courses").select("id, name") : { data: [] };
   const kursNamen = Object.fromEntries((kn ?? []).map((k) => [k.id, k.name.replace(/\s*[\[(].*$/, "")]));
   const neuTools = lerntools.filter((l) => !l.gesehen).length;
-  const { status: wiederholen } = await ladeWiederholen(supabase);
 
-  const plan = await ladeLernplan(supabase, termine).catch(() => []);
+  const plan = await ladeLernplan(supabase, termine, undefined, new Date(), wiederholen).catch(() => []);
   const mitPlan = [...termine, ...plan].sort((a, b) => a.start.getTime() - b.start.getTime());
   const heuteListe = mitPlan.filter((t) => t.start < tagStart(plusTage(heute, 1)) && t.ende > von);
   const restWoche = mitPlan.filter((t) => t.start >= tagStart(plusTage(heute, 1)) && t.start < bisWoche);

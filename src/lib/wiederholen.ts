@@ -62,12 +62,35 @@ export function sitzung(status: Status[], mitNeuen: boolean, max = 40) {
 type Db = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** Lädt fertige Themen + Antworten und berechnet den Wiederhol-Status aller Katalogfragen. */
-export async function ladeWiederholen(supabase: Db, kursId?: string, userId?: string) {
-  let q = supabase.from("lernthemen").select("id, titel, fertig_at, klausur_am, katalog, course_id, courses(name)").eq("status", "fertig").order("titel");
+export async function ladeWiederholen(supabase: Db, kursId?: string, userId?: string, mitKatalog = false) {
+  // Ohne Katalog reicht die Anzahl der Fragen (spart viele Daten auf Start- und Lernseite)
+  let q = supabase
+    .from("lernthemen")
+    .select(`id, titel, fertig_at, klausur_am, katalog_anzahl, course_id${mitKatalog ? ", katalog" : ""}`)
+    .eq("status", "fertig")
+    .order("titel");
   if (kursId) q = q.eq("course_id", kursId);
   if (userId) q = q.eq("user_id", userId);
-  const { data: themen } = await q;
-  // Supabase liefert höchstens 1000 Zeilen pro Abfrage → seitenweise laden
+  // Themen und Antworten parallel laden
+  const [{ data: themen }, antworten] = await Promise.all([q, ladeAntworten(supabase, userId)]);
+  const liste = (themen ?? []) as {
+    id: string;
+    titel: string;
+    fertig_at: string | null;
+    klausur_am: string | null;
+    katalog?: unknown[] | null;
+    katalog_anzahl: number | null;
+    course_id: string;
+  }[];
+  const status = fragenStatus(
+    liste.map((t) => ({ id: t.id, fertig_at: t.fertig_at, klausur_am: t.klausur_am, anzahl: t.katalog_anzahl ?? 0 })),
+    antworten,
+  );
+  return { themen: liste, status };
+}
+
+/** Supabase liefert höchstens 1000 Zeilen pro Abfrage → seitenweise laden */
+async function ladeAntworten(supabase: Db, userId?: string) {
   const antworten: Antwort[] = [];
   for (let von = 0; von < 50_000; von += 1000) {
     const { data } = await supabase
@@ -80,18 +103,5 @@ export async function ladeWiederholen(supabase: Db, kursId?: string, userId?: st
     antworten.push(...((data ?? []) as Antwort[]));
     if (!data || data.length < 1000) break;
   }
-  const liste = (themen ?? []) as {
-    id: string;
-    titel: string;
-    fertig_at: string | null;
-    klausur_am: string | null;
-    katalog: unknown[] | null;
-    course_id: string;
-    courses: { name: string } | null;
-  }[];
-  const status = fragenStatus(
-    liste.map((t) => ({ id: t.id, fertig_at: t.fertig_at, klausur_am: t.klausur_am, anzahl: (t.katalog ?? []).length })),
-    antworten,
-  );
-  return { themen: liste, status };
+  return antworten;
 }

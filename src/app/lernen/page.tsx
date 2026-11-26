@@ -16,7 +16,6 @@ type Zeile = {
   sofort: boolean;
   klausur_am: string | null;
   fehler: string | null;
-  katalog: unknown[] | null;
   course_id: string;
   courses: { name: string } | null;
 };
@@ -26,7 +25,7 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
   const { supabase } = await requireUser();
   const { data } = await supabase
     .from("lernthemen")
-    .select("id, titel, status, sofort, klausur_am, fehler, katalog, course_id, courses(name)")
+    .select("id, titel, status, sofort, klausur_am, fehler, course_id, courses(name)")
     .order("created_at");
   const themen = (data ?? []) as unknown as Zeile[];
   // Lernstand je Thema: wie viele Fragen sitzen (zuletzt gewusst), wie viele geübt

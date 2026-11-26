@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   // Standard: nur was es sonst nirgends gibt (Lernplan + ILIAS-Fristen). Vorlesungen und Klausuren aus Portal2
   // hat Tom schon als eigenen Uni-Kalender in iCloud, sonst wäre alles doppelt. ?alles=1 liefert alles.
   const alles = new URL(req.url).searchParams.get("alles") === "1";
-  const auswahl = alles ? [...termine, ...plan] : [...termine.filter((t) => t.quelle === "ilias"), ...plan];
+  const auswahl = alles ? [...termine, ...plan] : [...termine.filter((t) => t.quelle === "ilias" || t.quelle === "sonstig"), ...plan];
   return new Response(baueIcs(auswahl, alles ? "Uni-App" : "Uni-App Lernplan"), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",

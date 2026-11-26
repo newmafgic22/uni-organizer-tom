@@ -61,7 +61,11 @@ export async function autoAus(form: FormData) {
 export async function klausurInfoSpeichern(form: FormData) {
   const { supabase } = await requireUser();
   const info = String(form.get("klausur_info") ?? "").trim().slice(0, 4000);
-  await supabase.from("courses").update({ klausur_info: info || null }).eq("id", String(form.get("kurs_id")));
+  const datum = String(form.get("klausur_datum") ?? "");
+  await supabase
+    .from("courses")
+    .update({ klausur_info: info || null, klausur_datum: /^\d{4}-\d{2}-\d{2}$/.test(datum) ? datum : null })
+    .eq("id", String(form.get("kurs_id")));
   revalidatePath("/", "layout");
 }
 

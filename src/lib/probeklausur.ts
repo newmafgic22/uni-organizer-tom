@@ -5,7 +5,7 @@ type Auswahl = { frage: KatalogFrage; themaId: string; nr: number; thema: string
 
 /** Zieht Fragen gleichmäßig aus allen Themen (reihum), bei MC-Klausuren bevorzugt MC-Fragen. */
 export function probeAuswahl(themen: Thema[], klausurInfo: string, anzahl = 30, zufall = Math.random) {
-  const mcBevorzugt = /multiple|\bmc\b|antwortoption|ankreuz|cotutor/i.test(klausurInfo);
+  const mcBevorzugt = /multiple|\bmc\b|antwortoption|ankreuz|cotutor/i.test(klausurInfo) && !/überwiegend offen|nur ergänzend/i.test(klausurInfo);
   const toepfe = themen.map((t) => {
     const fragen = t.katalog.map((frage, nr) => ({ frage, themaId: t.id, nr, thema: t.titel }));
     mischen(fragen, zufall);

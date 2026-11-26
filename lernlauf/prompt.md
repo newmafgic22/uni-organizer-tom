@@ -6,7 +6,7 @@ Im aktuellen Ordner liegen:
 - Zusatzdateien zu dieser Vorlesung:
 {{ZUSATZ}}
 
-Lies `material.txt` vollständig (bei langen Dateien in mehreren Abschnitten). Lies die Zusatzdateien ebenfalls: Literatur ist oft klausurrelevanter als die Folien; Altklausuren zeigen, wie gefragt wird. Steht in `klausur.txt`, dass bestimmte Texte relevant sind, gewichte sie entsprechend.
+Lies `material.txt` vollständig (bei langen Dateien in mehreren Abschnitten). Lies die Zusatzdateien ebenfalls: Literatur ist oft klausurrelevanter als die Folien; Altklausuren zeigen, wie gefragt wird. Eingescannte PDFs liest du mit dem Read-Tool (bis zu 20 Seiten pro Aufruf); bei langen Texten reichen die Teile, die zum Thema der Vorlesung passen. Steht in `klausur.txt`, dass bestimmte Texte relevant sind, gewichte sie entsprechend.
 
 Schreibe genau diese drei Dateien in den aktuellen Ordner (auf Deutsch):
 

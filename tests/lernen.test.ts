@@ -44,3 +44,25 @@ test("Vorlesungsnummer und Hauptdatei", () => {
   assert.equal(istHauptdatei("12 Bildungspsychologie HSW2026 Kompetenzen von Lehrenden.pdf"), true);
   assert.equal(istHauptdatei("2026_Information_Versuchspersonenstunden.pdf"), false);
 });
+
+import { autorJahr, wirdZitiert } from "../src/lib/lernen.ts";
+
+test("autorJahr erkennt Literaturdateien", () => {
+  assert.deepEqual(autorJahr("Fischer2002 Gemeinsame Wissenskonstruktion.pdf"), { autor: "Fischer", jahr: "2002" });
+  assert.deepEqual(autorJahr("Bromme Haag_2008_Forschung zur Lehrerpersonlichkeit.pdf"), { autor: "Bromme", jahr: "2008" });
+  assert.deepEqual(autorJahr("Krauss etal2008_Professionelles Wissen.pdf"), { autor: "Krauss", jahr: "2008" });
+  assert.deepEqual(autorJahr("Lefrancois_2006_Psychologie des Lernens.pdf"), { autor: "Lefrancois", jahr: "2006" });
+  assert.deepEqual(autorJahr("1992_Bourne-Ekstrand_Einfuehrung.pdf"), { autor: "Bourne", jahr: "1992" });
+  assert.equal(autorJahr("Selbstreguliertes Lernen Skript.pdf"), null);
+});
+
+test("wirdZitiert findet Autor + Jahr im Folientext", () => {
+  assert.equal(wirdZitiert("Nuckles2009_Lernen durch Lehren.pdf", "vgl. Nückles (2009), S. 3"), true);
+  assert.equal(wirdZitiert("Gruber2008_Lernen.pdf", "Gruber, H. & Mandl, H. (2008). Lernen"), true);
+  assert.equal(wirdZitiert("Gruber2009_Situiertes Lernen.pdf", "Gruber (2008)"), false);
+});
+
+test("wirdZitiert mit eindeutigem Autor akzeptiert andere Auflage", () => {
+  assert.equal(wirdZitiert("1992_Bourne-Ekstrand_Statistik.pdf", "Bourne & Ekstrand (2005)"), false);
+  assert.equal(wirdZitiert("1992_Bourne-Ekstrand_Statistik.pdf", "Bourne & Ekstrand (2005)", true), true);
+});

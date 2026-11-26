@@ -16,6 +16,7 @@ type Zeile = {
   klausur_am: string | null;
   fehler: string | null;
   katalog: unknown[] | null;
+  course_id: string;
   courses: { name: string } | null;
 };
 
@@ -24,7 +25,7 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
   const { supabase } = await requireUser();
   const { data } = await supabase
     .from("lernthemen")
-    .select("id, titel, status, sofort, klausur_am, fehler, katalog, courses(name)")
+    .select("id, titel, status, sofort, klausur_am, fehler, katalog, course_id, courses(name)")
     .order("created_at");
   const themen = (data ?? []) as unknown as Zeile[];
   const { data: antw } = await supabase.from("antworten").select("thema_id, bewertung");
@@ -75,7 +76,19 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
         )}
         {reihen.map(([kurs, liste]) => (
           <section key={kurs} className="karte">
-            <h2 className="font-semibold">{kurs}</h2>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-semibold">{kurs}</h2>
+              {liste.some((t) => t.status === "fertig") && (
+                <span className="flex gap-3 text-sm">
+                  <Link href={`/lernen/wiederholen?neu=1&kurs=${liste[0].course_id}`} className="text-sky-600">
+                    Kurs üben
+                  </Link>
+                  <Link href={`/lernen/kurs/${liste[0].course_id}/druck`} className="text-sky-600">
+                    Lernzettel (PDF)
+                  </Link>
+                </span>
+              )}
+            </div>
             {liste[0]?.klausur_am && (
               <p className="mb-2 text-xs text-zinc-500">Klausur: {fmtDatum(new Date(liste[0].klausur_am))}</p>
             )}

@@ -16,6 +16,7 @@ import datetime as dt
 import getpass
 import hashlib
 import io
+import logging
 import os
 import re
 import subprocess
@@ -36,6 +37,7 @@ ILIAS = "https://ilias.uni-mannheim.de"
 KR = "uni-organizer"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) uni-organizer-sync"}
 MAX_MB = 45  # Supabase Free erlaubt max. 50 MB pro Datei
+logging.getLogger("pypdf").setLevel(logging.ERROR)  # keine "wrong pointing object"-Meldungen
 HIER = os.path.dirname(os.path.abspath(__file__))
 LOG = os.path.join(HIER, "sync.log")
 
@@ -155,6 +157,10 @@ def text_aus(dateiname, daten):
 
 
 def dateiname_aus(resp, fallback):
+    return re.sub(r"a?amp;", "&", _dateiname_aus(resp, fallback))
+
+
+def _dateiname_aus(resp, fallback):
     cd = resp.headers.get("content-disposition", "")
     m = re.search(r"filename\*\s*=\s*[^']*''([^;]+)", cd)
     if m:

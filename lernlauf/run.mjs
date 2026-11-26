@@ -32,7 +32,7 @@ async function app(body) {
 function claude(prompt, cwd) {
   const r = spawnSync(
     "claude",
-    ["-p", prompt, "--allowedTools", "Read,Write,Edit", "--max-turns", "30", "--output-format", "json"],
+    ["-p", prompt, "--allowedTools", "Read,Write,Edit", "--max-turns", "45", "--output-format", "json"],
     { cwd, encoding: "utf8", timeout: 25 * 60_000, maxBuffer: 50 * 1024 * 1024 },
   );
   const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
@@ -65,11 +65,19 @@ while (erledigt < MAX_THEMEN && Date.now() < ENDE) {
     break;
   }
   const t = themen[0];
-  console.log(`\n▶ ${t.kurs} – ${t.titel} (${t.text.length} Zeichen)`);
+  console.log(`\n▶ ${t.kurs} – ${t.titel} (${t.text.length} Zeichen, ${t.zusatz?.length ?? 0} Zusatzdateien)`);
   const dir = join(process.cwd(), "arbeit", t.id);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "material.txt"), t.text);
-  const prompt = PROMPT.replaceAll("{{KURS}}", t.kurs).replaceAll("{{TITEL}}", t.titel);
+  writeFileSync(join(dir, "klausur.txt"), t.klausur_info?.trim() || "Keine besonderen Infos zur Klausur bekannt.");
+  const zusatz = (t.zusatz ?? []).map((z, i) => {
+    const datei = `${z.art}_${i + 1}.txt`;
+    writeFileSync(join(dir, datei), `Datei: ${z.dateiname}\n\n${z.text}`);
+    return `- \`${datei}\` (${z.art === "altklausur" ? "Altklausur" : "Literatur zur Vorlesung"}): ${z.dateiname}`;
+  });
+  const prompt = PROMPT.replaceAll("{{KURS}}", t.kurs)
+    .replaceAll("{{TITEL}}", t.titel)
+    .replaceAll("{{ZUSATZ}}", zusatz.length ? zusatz.join("\n") : "- (keine)");
   const c = claude(prompt, dir);
   if (c.limit) {
     console.log("Abo-Limit erreicht, nächster Versuch in einer Stunde.");

@@ -63,7 +63,7 @@ type Db = { from: (t: string) => any }; // eslint-disable-line @typescript-eslin
 
 /** Lädt fertige Themen + Antworten und berechnet den Wiederhol-Status aller Katalogfragen. */
 export async function ladeWiederholen(supabase: Db, kursId?: string, userId?: string) {
-  let q = supabase.from("lernthemen").select("id, titel, fertig_at, klausur_am, katalog, course_id, courses(name)").eq("status", "fertig");
+  let q = supabase.from("lernthemen").select("id, titel, fertig_at, klausur_am, katalog, course_id, courses(name)").eq("status", "fertig").order("titel");
   if (kursId) q = q.eq("course_id", kursId);
   if (userId) q = q.eq("user_id", userId);
   const { data: themen } = await q;

@@ -46,7 +46,7 @@ export function KlausurUebersicht({ liste }: { liste: KlausurStand[] }) {
               <div className="flex justify-between gap-2">
                 <span className="truncate">{s.klausur.titel.replace(/^Klausur\s+/, "")}</span>
                 <span className="shrink-0 tabular-nums text-zinc-500">
-                  {fmtDatum(s.klausur.start).replace(/^\w+\., /, "")} · {tageBis(s.klausur.start)} T
+                  {fmtDatum(s.klausur.start).replace(/\d{4}$/, "")} · in {tageBis(s.klausur.start)} T.
                 </span>
               </div>
               <Fortschritt s={s} klein />
@@ -59,7 +59,8 @@ export function KlausurUebersicht({ liste }: { liste: KlausurStand[] }) {
 }
 
 function Fortschritt({ s, klein = false }: { s: KlausurStand; klein?: boolean }) {
-  if (!s.kursId || !s.themenGesamt) return null;
+  if (!s.kursId || !s.themenGesamt)
+    return <div className={`${klein ? "mt-0.5" : "mt-2"} text-xs text-zinc-500`}>Noch kein Lernmaterial angelegt</div>;
   const pSitzt = s.fragen ? Math.round((s.sitzt / s.fragen) * 100) : 0;
   const pFertig = Math.round((s.themenFertig / s.themenGesamt) * 100);
   return (
@@ -70,8 +71,9 @@ function Fortschritt({ s, klein = false }: { s: KlausurStand; klein?: boolean })
         <span className="absolute inset-y-0 left-0 bg-emerald-500" style={{ width: `${(pSitzt * pFertig) / 100}%` }} />
       </div>
       <div className="mt-0.5 text-xs text-zinc-500">
-        {s.themenFertig < s.themenGesamt ? `${s.themenFertig}/${s.themenGesamt} Themen bereit · ` : ""}
-        {s.sitzt}/{s.fragen} Fragen sitzen
+        {s.themenFertig < s.themenGesamt ? `${s.themenFertig}/${s.themenGesamt} Themen bereit` : ""}
+        {s.themenFertig < s.themenGesamt && s.fragen ? " · " : ""}
+        {s.fragen ? `${s.sitzt}/${s.fragen} Fragen sitzen` : ""}
       </div>
     </Link>
   );

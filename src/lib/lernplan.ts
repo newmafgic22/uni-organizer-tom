@@ -2,7 +2,7 @@
 // und legt Lernblöcke in freie Zeitfenster (keine Überschneidung mit Vorlesungen/Terminen).
 // Die letzten 2 Tage vor jeder Klausur sind Gesamtwiederholung. Rein berechnet, nichts gespeichert.
 import { istKlausur, type Termin } from "@/lib/ical";
-import { anzeigeName, klausurFuer, kurzTitel } from "@/lib/lernen";
+import { anzeigeName, klausurFuer, sehrKurzTitel } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 import { ladeWiederholen, type Status } from "@/lib/wiederholen";
 import { plusTage, tagKey, tagStart } from "@/lib/zeit";
@@ -43,7 +43,7 @@ export function baueLernplan(kurse: PlanKurs[], belegt: Termin[], jetzt = new Da
       if (teil?.length) {
         tagesPlan.push({
           tag,
-          titel: `📚 ${kurz(k.name)}: ${teil.map((t) => kurzTitel(t.titel)).join(" + ")}`,
+          titel: `📚 ${kurz(k.name)}: ${teil.map((t) => sehrKurzTitel(t.titel)).join(" + ")}`,
           beschreibung: `Zusammenfassung lesen, dann Abfragekatalog.\n${teil.map((t) => `${app}/lernen/${t.id}`).join("\n")}\nDanach: ${app}/lernen/wiederholen`,
           dauer: BLOCK_MIN * Math.min(teil.length, 2),
         });
@@ -97,10 +97,11 @@ function freierSlot(tag: string, dauer: number, belegt: Termin[], plan: Termin[]
     return new Date(s);
   }
   // heute schon zu spät oder alles voll → abends nach 22 Uhr (Tom lernt auch nachts)
-  const s = Math.max(start0 + FENSTER[1] * 60 * 60_000, jetzt.getTime() + 30 * 60_000);
+  // erst auf die halbe Stunde runden, dann prüfen (sonst rutscht der Block auf den nächsten Tag, z. B. 00:00–03:00)
+  const s = Math.ceil(Math.max(start0 + FENSTER[1] * 60 * 60_000, jetzt.getTime() + 30 * 60_000) / 1_800_000) * 1_800_000;
   const e = s + dauer * 60_000;
   if (tagKey(new Date(s)) !== tag || alle.some((t) => t.start.getTime() < e && t.ende.getTime() > s)) return null;
-  return new Date(Math.ceil(s / 1_800_000) * 1_800_000);
+  return new Date(s);
 }
 
 type Db = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any

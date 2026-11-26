@@ -30,7 +30,13 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
   const { data: lt } = q.trim() ? await supabase.from("lernthemen").select("id, status, material_id") : { data: [] };
   const themen = Object.fromEntries((lt ?? []).map((t) => [t.material_id, { id: t.id, status: t.status }]));
 
-  const liste = (kurse ?? []).filter((k) => alle || !k.ausgeblendet).sort((a, b) => natSort(a.name, b.name));
+  const sichtbar = (kurse ?? []).filter((k) => alle || !k.ausgeblendet).sort((a, b) => natSort(anzeigeName(a.name), anzeigeName(b.name)));
+  const liste = sichtbar.filter((k) => anzahl[k.id]);
+  const leer = sichtbar.filter((k) => !anzahl[k.id]);
+  // Gleiche Anzeigenamen (z. B. Vorlesung + Übung) → Originalname dazuschreiben, damit man sie unterscheiden kann
+  const namenZahl: Record<string, number> = {};
+  sichtbar.forEach((k) => (namenZahl[anzeigeName(k.name)] = (namenZahl[anzeigeName(k.name)] ?? 0) + 1));
+  const zusatz = (name: string) => (namenZahl[anzeigeName(name)] > 1 ? ` · ${name}` : "");
   const versteckt = (kurse ?? []).filter((k) => k.ausgeblendet).length;
   const letzter = (kurse ?? []).map((k) => k.zuletzt_sync).filter(Boolean).sort().pop();
 
@@ -55,21 +61,35 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
                 Noch keine Kurse. Sobald das Sync-Skript auf deinem PC einmal gelaufen ist, erscheinen hier deine ILIAS-Kurse.
               </p>
             )}
-            <ul className="flex flex-col gap-2">
+            <ul className="grid gap-2 sm:grid-cols-2">
               {liste.map((k) => (
-                <li key={k.id} className="karte flex items-center gap-3">
-                  <Link href={`/material/${k.id}`} className={`flex-1 ${k.ausgeblendet ? "text-zinc-400" : ""}`}>
+                <li key={k.id} className="karte flex items-center gap-3 transition-colors hover:border-sky-400 dark:hover:border-sky-700">
+                  <Link href={`/material/${k.id}`} className={`min-w-0 flex-1 ${k.ausgeblendet ? "text-zinc-400" : ""}`}>
                     <span className="font-medium">{anzeigeName(k.name)}</span>
-                    <span className="block text-xs text-zinc-500">{anzahl[k.id] ?? 0} Dateien</span>
+                    <span className="block truncate text-xs text-zinc-500" title={k.name}>
+                      {anzahl[k.id] ?? 0} Dateien{zusatz(k.name)}
+                    </span>
                   </Link>
-                  <form action={kursSichtbarkeit}>
-                    <input type="hidden" name="id" value={k.id} />
-                    <input type="hidden" name="ausblenden" value={k.ausgeblendet ? "0" : "1"} />
-                    <button className="text-xs text-zinc-500 underline">{k.ausgeblendet ? "einblenden" : "ausblenden"}</button>
-                  </form>
+                  <Sichtbarkeit id={k.id} aus={k.ausgeblendet} />
                 </li>
               ))}
             </ul>
+            {leer.length > 0 && (
+              <details className="text-sm">
+                <summary className="cursor-pointer text-zinc-500">{leer.length} Kurse ohne Dateien</summary>
+                <ul className="mt-2 flex flex-col divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white px-4 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
+                  {leer.map((k) => (
+                    <li key={k.id} className="flex items-center gap-3 py-2">
+                      <Link href={`/material/${k.id}`} className="min-w-0 flex-1 truncate" title={k.name}>
+                        {anzeigeName(k.name)}
+                        <span className="text-xs text-zinc-500">{zusatz(k.name)}</span>
+                      </Link>
+                      <Sichtbarkeit id={k.id} aus={k.ausgeblendet} />
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
             <p className="text-xs text-zinc-500">
               {letzter ? `Letzter Sync: ${fmtDatum(new Date(letzter))}, ${fmtZeit(new Date(letzter))} Uhr. ` : ""}
               Ausgeblendete Kurse werden nicht mehr synchronisiert.{" "}
@@ -84,5 +104,15 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
         )}
       </main>
     </>
+  );
+}
+
+function Sichtbarkeit({ id, aus }: { id: string; aus: boolean }) {
+  return (
+    <form action={kursSichtbarkeit}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="ausblenden" value={aus ? "0" : "1"} />
+      <button className="text-xs text-zinc-500 underline">{aus ? "einblenden" : "ausblenden"}</button>
+    </form>
   );
 }

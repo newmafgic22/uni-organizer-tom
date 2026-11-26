@@ -7,6 +7,11 @@ body {
   @apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
 }
 
+/* Handy: Platz für die Navigationsleiste unten */
+@media (max-width: 639px) {
+  body { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+}
+
 .karte {
   @apply rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900;
 }
@@ -28,5 +33,5 @@ body {
   header, nav { display: none !important; }
   .druck { max-width: none; padding: 0; }
   .seitenumbruch { break-before: page; }
-  body { background: white !important; color: black !important; }
+  body { background: white !important; color: black !important; padding-bottom: 0 !important; }
 }

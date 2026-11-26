@@ -1,5 +1,5 @@
 import type { Termin } from "@/lib/ical";
-import { fmtZeit } from "@/lib/zeit";
+import { fmtTag, fmtZeit, tagKey } from "@/lib/zeit";
 import { anzeigeName } from "@/lib/lernen";
 
 const FARBE: Record<string, string> = {
@@ -22,7 +22,7 @@ export function TerminZeile({ t }: { t: Termin }) {
             {t.titel}
           </a>
         ) : (
-          <div className="font-medium leading-snug break-words">{t.quelle === "portal2" ? anzeigeName(t.titel) : t.titel}</div>
+          <div className="font-medium leading-snug break-words">{t.quelle === "portal2" || t.quelle === "ilias" ? anzeigeName(t.titel) : t.titel}</div>
         )}
         {t.ort && <div className="text-sm text-zinc-500 dark:text-zinc-400 break-words">{t.ort}</div>}
       </div>
@@ -38,6 +38,27 @@ export function TerminListe({ termine, leer = "Keine Termine." }: { termine: Ter
         <TerminZeile key={t.id} t={t} />
       ))}
     </ul>
+  );
+}
+
+/** Termine nach Tagen gruppiert, mit Tagesüberschrift */
+export function TerminTage({ termine, leer = "Keine Termine." }: { termine: Termin[]; leer?: string }) {
+  if (termine.length === 0) return <p className="text-sm text-zinc-500 py-2">{leer}</p>;
+  const tage = new Map<string, Termin[]>();
+  for (const t of termine) {
+    const k = tagKey(t.start);
+    if (!tage.has(k)) tage.set(k, []);
+    tage.get(k)!.push(t);
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {[...tage].map(([k, liste]) => (
+        <div key={k}>
+          <h3 className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">{fmtTag(k)}</h3>
+          <TerminListe termine={liste} />
+        </div>
+      ))}
+    </div>
   );
 }
 

@@ -67,11 +67,18 @@ test("wirdZitiert mit eindeutigem Autor akzeptiert andere Auflage", () => {
   assert.equal(wirdZitiert("1992_Bourne-Ekstrand_Statistik.pdf", "Bourne & Ekstrand (2005)", true), true);
 });
 
-import { kurzTitel } from "../src/lib/lernen.ts";
+import { kurzTitel, sehrKurzTitel } from "../src/lib/lernen.ts";
 test("kurzTitel", () => {
-  assert.equal(kurzTitel("02 Bildungspsychologie HWS2026 AuffassungenLernen SelbstreguliertesLernen"), "02 AuffassungenLernen SelbstreguliertesLernen");
+  assert.equal(kurzTitel("02 Bildungspsychologie HWS2026 AuffassungenLernen SelbstreguliertesLernen"), "02 Auffassungen Lernen Selbstreguliertes Lernen");
   assert.equal(kurzTitel("11 Bildungspsychologie HSW2026 Unterrichtsqualitaet II"), "11 Unterrichtsqualitaet II");
-  assert.equal(kurzTitel("GWP 07 HWS 2026 CurrBed"), "07 CurrBed");
+  assert.equal(kurzTitel("GWP 07 HWS 2026 CurrBed"), "07 Curr Bed");
+  assert.equal(kurzTitel("GVWL Vorlesung 05 (Teil 1) (Update 28.09.)"), "Vorlesung 05 (Teil 1)");
+  assert.equal(kurzTitel("WiPäd Grundlagen"), "WiPäd Grundlagen");
+  assert.equal(kurzTitel("GvwlHws2026Kapitel23VGRKomplett"), "Kapitel 23 VGR Komplett");
+  assert.equal(kurzTitel("GvwlHws2026Einfuehrung"), "Einfuehrung");
+  assert.equal(kurzTitel("Vorlesung 05 (Teil 1)"), "Vorlesung 05 (Teil 1)");
+  assert.equal(kurzTitel("01 Analysis HWS 2026 Mengen"), "01 Mengen");
+  assert.equal(sehrKurzTitel("GVWL Vorlesung 02 - Loesung und Erlaeuterungen zum Zahlenbeispiel"), "Vorlesung 02");
 });
 
 test("Organisatorisches ist kein Lernthema", () => {

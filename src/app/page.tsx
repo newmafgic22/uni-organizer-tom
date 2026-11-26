@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
-import { Fehler, Legende, TerminListe } from "@/components/TerminListe";
+import { Fehler, Legende, TerminListe, TerminTage } from "@/components/TerminListe";
 import { LerntoolKacheln, type LinkEintrag } from "@/components/LinkListe";
 import { istKlausur } from "@/lib/ical";
 import { ladeTermine } from "@/lib/daten";
@@ -76,12 +76,12 @@ export default async function Start() {
           </div>
         )}
         <Fehler fehler={fehler} />
-        <div className="grid gap-4 md:grid-cols-3">
-          <section className="karte md:col-span-1">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <section className="karte lg:col-span-1">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Klausuren</h2>
             <KlausurUebersicht liste={klausurStand} />
           </section>
-          <section className="karte md:col-span-2">
+          <section className="karte lg:col-span-2">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Heute</h2>
               <Legende />
@@ -126,7 +126,7 @@ export default async function Start() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Rest der Woche</h2>
             <Link href="/kalender" className="text-sm text-sky-600">Ganzer Kalender →</Link>
           </div>
-          <TerminListe termine={restWoche} leer="Diese Woche nichts mehr." />
+          <TerminTage termine={restWoche} leer="Diese Woche nichts mehr." />
         </section>
       </main>
     </>

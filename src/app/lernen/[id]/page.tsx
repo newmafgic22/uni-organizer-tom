@@ -4,7 +4,7 @@ import { Nav } from "@/components/Nav";
 import { Abfrage } from "@/components/Abfrage";
 import { requireUser } from "@/lib/supabase/server";
 import { markdown } from "@/lib/markdown";
-import { STATUS_TEXT, anzeigeName, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
+import { STATUS_TEXT, anzeigeName, kurzTitel, type Aufgabe, type KatalogFrage } from "@/lib/lernen";
 import { themaLoeschen } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export default async function Thema({
         <Link href="/lernen" className="text-sm text-zinc-500">← Alle Themen</Link>
         <div>
           <p className="text-sm text-zinc-500">{kurs}</p>
-          <h1 className="text-2xl font-semibold">{t.titel}</h1>
+          <h1 className="text-2xl font-semibold">{kurzTitel(t.titel)}</h1>
           <p className="text-sm">
             <a href={`/api/datei/${t.material_id}`} target="_blank" className="text-sky-600 underline">Original öffnen</a>
             {t.status === "fertig" && (

@@ -2,6 +2,7 @@
 Uni-Organizer Tom - ILIAS-Sync (Etappe 2)
 
 Holt neue/geänderte Dateien und Lernmodule aus deinen ILIAS-Kursen und lädt sie in die App.
+Meldet außerdem Tests, Übungen, Weblinks und externe Lerntools (Liste "Lerntools & Links").
 
 Einmal einrichten (fragt Uni-ID, Passwort und Sync-Schlüssel ab, speichert sie im
 Windows-Anmeldeinformationsspeicher, NICHT in einer Datei):
@@ -179,6 +180,9 @@ def _dateiname_aus(resp, fallback):
 CONTAINER = re.compile(r"goto\.php/(fold|grp|sess|crs)/(\d+)")
 SENDFILE = re.compile(r"cmd=sendfile.*?ref_id=(\d+)(?:.*?[?&]v=(\d+))?")
 LM = re.compile(r"goto\.php/lm/(\d+)")
+# Weitere ILIAS-Objekte, die Lerntools sein können (Tests, Übungen, Weblinks, externe Tools ...)
+OBJEKT = re.compile(r"goto\.php(?:/|\?target=)(tst|exc|webr|lti|xxco|cmix|sahs|htlm|copa|glo|xlvo|svy|poll|mcst|xvid)[/_](\d+)")
+WEBLINK = re.compile(r"baseClass=ilLinkResourceHandlerGUI.*?ref_id=(\d+)", re.I)
 
 
 def eintraege(s, url):
@@ -204,7 +208,37 @@ def eintraege(s, url):
         m = LM.search(href)
         if m:
             out.append(("lm", m.group(1), titel, href, {}))
+            continue
+        desc = item.select_one(".il_Description")
+        beschreibung = desc.get_text(" ", strip=True) if desc else ""
+        m = WEBLINK.search(href)
+        if m:
+            out.append(("objekt", m.group(1), titel, href, {"typ": "webr", "beschreibung": beschreibung}))
+            continue
+        m = OBJEKT.search(href)
+        if m:
+            out.append(("objekt", m.group(2), titel, href, {"typ": m.group(1), "beschreibung": beschreibung}))
+            continue
+        if href.startswith("http") and "ilias.uni-mannheim.de" not in href:
+            out.append(("objekt", href, titel, href, {"typ": "extern", "ziel": href, "beschreibung": beschreibung}))
     return out
+
+
+def weblink_ziel(s, href):
+    """Wohin führt ein ILIAS-Weblink? (ILIAS leitet per HTTP-Redirect weiter)"""
+    try:
+        r = s.get(href, allow_redirects=False, timeout=30)
+        ziel = r.headers.get("location", "")
+        if ziel and "ilias.uni-mannheim.de" not in urljoin(href, ziel):
+            return urljoin(href, ziel)
+        if r.status_code == 200 and "calldirectlink" not in href:
+            # Weblink-Sammlung: erster externer Link auf der Seite
+            for a in soup(r).select("#ilContentContainer a[href^=http]"):
+                if "ilias.uni-mannheim.de" not in a["href"]:
+                    return a["href"]
+    except requests.RequestException:
+        pass
+    return None
 
 
 def lernmodul_text(s, ref):
@@ -234,6 +268,7 @@ def lernmodul_text(s, ref):
 def sync_kurs(s, app, kurs, bekannt, besucht, stat):
     start = f"{ILIAS}/goto.php/{kurs['ilias_ref']}"
     stapel = [(start, "")]
+    objekte = []
     while stapel:
         url, ordner = stapel.pop()
         try:
@@ -268,6 +303,14 @@ def sync_kurs(s, app, kurs, bekannt, besucht, stat):
                 except Exception as e:
                     stat["fehler"] += 1
                     log("  Fehler bei", titel, ":", e)
+            elif art == "objekt":
+                o = {"typ": extra["typ"], "id": rid, "titel": titel, "url": href, "ordner": ordner,
+                     "beschreibung": extra.get("beschreibung", "")}
+                if extra["typ"] == "webr":
+                    o["ziel"] = weblink_ziel(s, href)
+                elif extra.get("ziel"):
+                    o["ziel"] = extra["ziel"]
+                objekte.append(o)
             elif art == "lm":
                 iid = f"lm_{rid}"
                 try:
@@ -284,6 +327,12 @@ def sync_kurs(s, app, kurs, bekannt, besucht, stat):
                 except Exception as e:
                     stat["fehler"] += 1
                     log("  Fehler bei Lernmodul", titel, ":", e)
+    if objekte:
+        try:
+            app.post(aktion="objekte", kurs_id=kurs["id"], objekte=objekte)
+            log(f"  {len(objekte)} Tests/Übungen/Links gemeldet")
+        except Exception as e:
+            log("  Lerntools konnten nicht gemeldet werden:", e)
 
 
 def kursliste(s):
@@ -324,6 +373,14 @@ def sync():
         sync_kurs(s, app, kurs, bekannt, besucht, stat)
         fertig.append(kurs["id"])
     app.post(aktion="ende", kurs_ids=fertig)
+    # Links in Datei-Texten suchen (Lerntools wie CoTutor stehen oft nur in den Folien)
+    try:
+        for _ in range(30):
+            r = app.post(aktion="links_scan")
+            if not r.get("rest"):
+                break
+    except Exception as e:
+        log("Link-Suche übersprungen:", e)
     log(f"=== Fertig: {stat['dateien']} neu/geändert, {stat['fehler']} Fehler ===")
     return 0
 

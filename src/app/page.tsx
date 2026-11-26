@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Fehler, Legende, TerminListe } from "@/components/TerminListe";
+import { LerntoolKacheln, type LinkEintrag } from "@/components/LinkListe";
 import { istKlausur } from "@/lib/ical";
 import { ladeTermine } from "@/lib/daten";
 import { requireUser } from "@/lib/supabase/server";
@@ -16,6 +17,16 @@ export default async function Start() {
   const bisWoche = tagStart(plusTage(montag, 7));
   const bisKlausur = tagStart(plusTage(heute, 180));
   const { termine, fehler, anzahlQuellen } = await ladeTermine(supabase, von, bisKlausur);
+  // Lerntools (z. B. CoTutor), Tests und Übungen, die der Sync gefunden hat
+  const { data: lk } = await supabase
+    .from("links")
+    .select("id, course_id, url, titel, kategorie, wichtig, gesehen, ausgeblendet, fundstelle, quelle")
+    .eq("wichtig", true)
+    .eq("ausgeblendet", false);
+  const lerntools: LinkEintrag[] = lk ?? [];
+  const { data: kn } = lerntools.length ? await supabase.from("courses").select("id, name") : { data: [] };
+  const kursNamen = Object.fromEntries((kn ?? []).map((k) => [k.id, k.name.replace(/\s*[\[(].*$/, "")]));
+  const neuTools = lerntools.filter((l) => !l.gesehen).length;
 
   const heuteListe = termine.filter((t) => t.start < tagStart(plusTage(heute, 1)) && t.ende > von);
   const restWoche = termine.filter((t) => t.start >= tagStart(plusTage(heute, 1)) && t.start < bisWoche);
@@ -65,6 +76,14 @@ export default async function Start() {
             <TerminListe termine={heuteListe} leer="Heute steht nichts an." />
           </section>
         </div>
+        {lerntools.length > 0 && (
+          <section className="karte">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+              Lerntools{neuTools > 0 ? ` · ${neuTools} neu` : ""}
+            </h2>
+            <LerntoolKacheln links={lerntools} kursNamen={kursNamen} />
+          </section>
+        )}
         <section className="karte">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Rest der Woche</h2>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { MaterialListe, Suche } from "@/components/MaterialListe";
+import { LerntoolKacheln, WeitereLinks, type LinkEintrag } from "@/components/LinkListe";
 import { requireUser } from "@/lib/supabase/server";
 import { alleEinreihen, autoAus, klausurInfoSpeichern } from "@/app/lernen/actions";
 import { lohntThema } from "@/lib/einreihen";
@@ -25,6 +26,11 @@ export default async function KursMaterial({
   const { data } = await abfrage.limit(1000);
   const { data: lt } = await supabase.from("lernthemen").select("id, status, material_id").eq("course_id", id);
   const themen = Object.fromEntries((lt ?? []).map((t) => [t.material_id, { id: t.id, status: t.status }]));
+  const { data: lk } = await supabase
+    .from("links")
+    .select("id, course_id, url, titel, kategorie, wichtig, gesehen, ausgeblendet, fundstelle, quelle")
+    .eq("course_id", id);
+  const links: LinkEintrag[] = lk ?? [];
   const offen = q.trim() ? 0 : (data ?? []).filter((m) => lohntThema(m) && !themen[m.id]).length;
 
   return (
@@ -69,6 +75,13 @@ export default async function KursMaterial({
             </form>
           </details>
         </div>
+        {!q.trim() && links.length > 0 && (
+          <section className="karte flex flex-col gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Lerntools &amp; Links</h2>
+            <LerntoolKacheln links={links} />
+            <WeitereLinks links={links} />
+          </section>
+        )}
         <Suche q={q} ziel={`/material/${id}`} />
         {q.trim() && <p className="text-sm text-zinc-500">{data?.length ?? 0} Treffer für „{q}“</p>}
         <MaterialListe dateien={data ?? []} themen={themen} />

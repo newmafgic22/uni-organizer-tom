@@ -4,6 +4,7 @@ import { ladeTermine } from "@/lib/daten";
 import { istKlausur } from "@/lib/ical";
 import { klausurFuer } from "@/lib/lernen";
 import { lohntThema, themenAnlegen } from "@/lib/einreihen";
+import { bewerteObjekt, findeLinks, normalisiere, zusammenfassen } from "@/lib/links";
 
 // Schnittstelle für das Sync-Skript auf Toms PC.
 // Anmeldung per "Authorization: Bearer <sync_token>" (steht in den Einstellungen).
@@ -75,7 +76,55 @@ export async function POST(req: NextRequest) {
     );
     if (error) return NextResponse.json({ fehler: error.message }, { status: 500 });
     if (alt?.storage_path && alt.storage_path !== path) await db.storage.from("materialien").remove([alt.storage_path]);
+    // neuer Inhalt -> beim nächsten Link-Scan erneut durchsuchen (Fehler egal, falls Migration 0006 fehlt)
+    await db.from("materials").update({ links_gescannt: false }).eq("user_id", userId).eq("ilias_id", iliasId).then(() => null, () => null);
     return NextResponse.json({ ok: true });
+  }
+
+  if (body.aktion === "objekte") {
+    // ILIAS-Objekte eines Kurses, die keine Dateien/Ordner sind (Tests, Übungen, Weblinks, Tools ...)
+    const kursId = String(body.kurs_id ?? "");
+    const { data: kurs } = await db.from("courses").select("id").eq("id", kursId).eq("user_id", userId).maybeSingle();
+    if (!kurs) return NextResponse.json({ fehler: "Kurs unbekannt" }, { status: 404 });
+    const objekte: { typ?: string; id?: string; titel?: string; url?: string; ziel?: string; beschreibung?: string; ordner?: string }[] =
+      Array.isArray(body.objekte) ? body.objekte.slice(0, 500) : [];
+    const zeilen = [];
+    for (const o of objekte) {
+      const typ = String(o.typ ?? "");
+      const titel = String(o.titel ?? "").slice(0, 300) || null;
+      const ziel = o.ziel ? normalisiere(String(o.ziel)) : null;
+      const b = bewerteObjekt(typ, titel ?? "", ziel);
+      const url = ziel ?? (o.url ? normalisiere(String(o.url)) : null);
+      if (b && url) zeilen.push({ user_id: userId, course_id: kursId, url, titel: titel ?? b.name, quelle: "ilias", ilias_typ: typ || null, kategorie: b.kategorie, wichtig: b.wichtig, fundstelle: String(o.ordner ?? "").slice(0, 300) || null });
+      // Links in der Beschreibung des Objekts
+      for (const f of zusammenfassen(findeLinks(String(o.beschreibung ?? "")))) {
+        zeilen.push({ user_id: userId, course_id: kursId, url: f.url, titel: f.titel, quelle: "text", ilias_typ: null, kategorie: f.bewertung.kategorie, wichtig: f.bewertung.wichtig, fundstelle: titel });
+      }
+    }
+    const n = await linksSpeichern(db, zeilen);
+    return NextResponse.json({ ok: true, links: n });
+  }
+
+  if (body.aktion === "links_scan") {
+    // Datei-Texte nach Links durchsuchen, in Portionen (Aufruf wiederholen, bis rest = 0)
+    const { data: mats, error } = await db
+      .from("materials")
+      .select("id, course_id, dateiname, inhalt")
+      .eq("user_id", userId)
+      .eq("links_gescannt", false)
+      .limit(40);
+    if (error) return NextResponse.json({ fehler: error.message }, { status: 500 });
+    const zeilen = [];
+    for (const m of mats ?? []) {
+      for (const f of zusammenfassen(findeLinks(m.inhalt ?? ""))) {
+        zeilen.push({ user_id: userId, course_id: m.course_id, url: f.url, titel: f.titel, quelle: "text", ilias_typ: null, kategorie: f.bewertung.kategorie, wichtig: f.bewertung.wichtig, fundstelle: m.dateiname });
+      }
+    }
+    const n = await linksSpeichern(db, zeilen);
+    const ids = (mats ?? []).map((m) => m.id);
+    if (ids.length) await db.from("materials").update({ links_gescannt: true }).in("id", ids);
+    const { count } = await db.from("materials").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("links_gescannt", false);
+    return NextResponse.json({ ok: true, gescannt: ids.length, links: n, rest: count ?? 0 });
   }
 
   if (body.aktion === "ende") {
@@ -105,4 +154,24 @@ async function autoEinreihen(db: ReturnType<typeof createAdminClient>, userId: s
     n += await themenAnlegen(db, userId, offen, klausurFuer(k.name, klausuren)?.start.toISOString() ?? null);
   }
   return n;
+}
+
+type LinkZeile = {
+  user_id: string; course_id: string; url: string; titel: string | null; quelle: string; ilias_typ: string | null;
+  kategorie: string; wichtig: boolean; fundstelle: string | null;
+};
+
+/** Neue Links anlegen. Schon bekannte bleiben, wie sie sind (gesehen/ausgeblendet bleibt erhalten). */
+async function linksSpeichern(db: ReturnType<typeof createAdminClient>, zeilen: LinkZeile[]) {
+  const eindeutig = new Map<string, LinkZeile>();
+  for (const z of zeilen) {
+    const k = `${z.course_id}|${z.url}`;
+    const alt = eindeutig.get(k);
+    if (!alt || (z.quelle === "ilias" && alt.quelle !== "ilias")) eindeutig.set(k, z);
+  }
+  const liste = [...eindeutig.values()];
+  if (!liste.length) return 0;
+  const { error } = await db.from("links").upsert(liste, { onConflict: "user_id,course_id,url", ignoreDuplicates: true });
+  if (error) throw new Error(error.message);
+  return liste.length;
 }

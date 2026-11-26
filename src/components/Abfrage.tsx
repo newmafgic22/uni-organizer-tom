@@ -1,12 +1,21 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { antwortSpeichern } from "@/app/lernen/actions";
 
-type Karte = { frage: string; antwort: string; afb: number; optionen?: { text: string; richtig: boolean; erklaerung?: string }[] };
+export type Karte = {
+  frage: string;
+  antwort: string;
+  afb: number;
+  optionen?: { text: string; richtig: boolean; erklaerung?: string }[];
+  /** beim Wiederholen über mehrere Themen: Herkunft der Karte */
+  themaId?: string;
+  nr?: number;
+  thema?: string;
+};
 
 const AFB = ["", "AFB I", "AFB II", "AFB III"];
 
-export function Abfrage({ themaId, karten }: { themaId: string; karten: Karte[] }) {
+export function Abfrage({ themaId, karten, ende }: { themaId?: string; karten: Karte[]; ende?: ReactNode }) {
   const [filter, setFilter] = useState(0);
   const [mischen, setMischen] = useState(false);
   const [pos, setPos] = useState(0);
@@ -17,7 +26,7 @@ export function Abfrage({ themaId, karten }: { themaId: string; karten: Karte[] 
   const mcAnzahl = karten.filter((x) => x.optionen).length;
 
   const liste = useMemo(() => {
-    const l = karten.map((k, nr) => ({ ...k, nr })).filter((k) => (!filter || k.afb === filter) && (!nurMc || k.optionen));
+    const l = karten.map((k, i) => ({ ...k, nr: k.nr ?? i, idx: i })).filter((k) => (!filter || k.afb === filter) && (!nurMc || k.optionen));
     if (mischen) l.sort(() => Math.random() - 0.5);
     return l;
   }, [karten, filter, mischen, nurMc]);
@@ -27,8 +36,9 @@ export function Abfrage({ themaId, karten }: { themaId: string; karten: Karte[] 
 
   function bewerten(b: string) {
     if (!k) return;
-    setErgebnis((e) => ({ ...e, [k.nr]: b }));
-    antwortSpeichern(themaId, "katalog", k.nr, k.afb, b);
+    setErgebnis((e) => ({ ...e, [k.idx]: b }));
+    const tid = k.themaId ?? themaId;
+    if (tid) antwortSpeichern(tid, "katalog", k.nr, k.afb, b);
     setOffen(false);
     setGewaehlt([]);
     setPos((p) => p + 1);
@@ -72,9 +82,11 @@ export function Abfrage({ themaId, karten }: { themaId: string; karten: Karte[] 
             {werte.filter((w) => w === "richtig").length} gewusst · {werte.filter((w) => w === "teilweise").length} teilweise ·{" "}
             {werte.filter((w) => w === "falsch").length} nicht gewusst
           </p>
-          <button className={knopf(true)} onClick={() => (setPos(0), setErgebnis({}))}>
-            Nochmal
-          </button>
+          {ende ?? (
+            <button className={knopf(true)} onClick={() => (setPos(0), setErgebnis({}))}>
+              Nochmal
+            </button>
+          )}
         </div>
       ) : (
         <div className="karte flex flex-col gap-3">
@@ -82,7 +94,10 @@ export function Abfrage({ themaId, karten }: { themaId: string; karten: Karte[] 
             <span>
               Frage {pos + 1} von {liste.length}
             </span>
-            <span>{AFB[k.afb]}</span>
+            <span>
+              {k.thema ? `${k.thema} · ` : ""}
+              {AFB[k.afb]}
+            </span>
           </div>
           <p className="text-lg font-medium whitespace-pre-line">{k.frage}</p>
           {k.optionen && (

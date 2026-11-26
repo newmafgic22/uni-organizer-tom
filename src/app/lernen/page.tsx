@@ -52,7 +52,12 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
     <>
       <Nav />
       <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Lernen</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl font-semibold">Lernen</h1>
+          <Link href="/lernen/wiederholen" className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white">
+            🔁 Heute wiederholen
+          </Link>
+        </div>
         {hinweis === "sofort-voll" && (
           <p className="karte text-sm text-amber-600">Es sind schon 2 Themen vorgezogen. Warte, bis die fertig sind.</p>
         )}

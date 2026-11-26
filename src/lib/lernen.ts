@@ -93,7 +93,21 @@ export function wirdZitiert(dateiname: string, vorlesung: string, autorEindeutig
 
 /** "02 Bildungspsychologie HWS2026 Auffassungen…" → "02 Auffassungen…", "GWP 07 HWS 2026 CurrBed" → "07 CurrBed" */
 export const kurzTitel = (titel: string) =>
-  titel.replace(/^(\d+)\s+\S+\s+H[WS]{2}\s?20\d\d\s+/i, "$1 ").replace(/^[A-Z]{2,5} (\d+) H[WS]{2}\s?20\d\d /i, "$1 ");
+  titel
+    .replace(/^(\d+)\s+\S+\s+H[WS]{2}\s?20\d\d\s+/i, "$1 ")
+    .replace(/^[A-Z]{2,5} (\d+) H[WS]{2}\s?20\d\d /i, "$1 ")
+    .replace(/\s*\((?:Update|Stand)[^)]*\)/gi, "") // "(Update 09.09.2026)"
+    .replace(/(^|\+\s*)[A-Z]{3,5}\s+(?=Vorlesung|Übung|Tutorium)/g, "$1") // "GVWL Vorlesung 01" → "Vorlesung 01"
+    .replace(/^[A-Z][a-z]{2,4}H[WS]S20\d\d(?=[A-Z])/, "") // "GvwlHws2026Kapitel23…" → "Kapitel23…"
+    .replace(/^[A-Z][a-z]{2,4}Hws20\d\d(?=[A-Z])/, "")
+    .replace(/([a-zäöüß]{3})([A-ZÄÖÜ][a-zäöüß])/g, "$1 $2") // "AuffassungenLernen" → "Auffassungen Lernen"
+    .replace(/([a-zäöüß]{3})(\d)/g, "$1 $2") // "Kapitel23" → "Kapitel 23"
+    .replace(/(\d)([A-ZÄÖÜ]{2,}|[A-ZÄÖÜ][a-zäöüß]{2})/g, "$1 $2") // "23VGR" → "23 VGR"
+    .replace(/([A-ZÄÖÜ]{2,})([A-ZÄÖÜ][a-zäöüß]{2})/g, "$1 $2") // "VGRKomplett" → "VGR Komplett"
+    .trim();
+
+/** Ganz kurze Form für Kalender-Titel: ohne Untertitel nach " - " */
+export const sehrKurzTitel = (titel: string) => kurzTitel(titel).split(/\s+[-–]\s+/)[0];
 
 /** Verständlicher Kursname ohne Modulkürzel und Semesterzusätze:
  *  "BW 1: Einführung in die Bildungspsychologie [V] (HWS 2026)" → "Bildungspsychologie",

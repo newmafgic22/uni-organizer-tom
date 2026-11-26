@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { requireUser } from "@/lib/supabase/server";
-import { STATUS_TEXT, anzeigeName } from "@/lib/lernen";
+import { STATUS_TEXT, anzeigeName, kurzTitel } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 import { ladeWiederholen } from "@/lib/wiederholen";
 import { fmtDatum } from "@/lib/zeit";
@@ -78,7 +78,7 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
         )}
         {wartend > 0 && (
           <p className="text-sm text-zinc-500">
-            {wartend} Thema/Themen in der Warteschlange. Der Lernlauf schaut jede Stunde nach und macht weiter, sobald dein Claude-Limit es zulässt.
+            {wartend} Thema/Themen in der Warteschlange. Der Lernlauf arbeitet sie nacheinander ab und macht nach einem Claude-Limit automatisch weiter.
             Reihenfolge: vorgezogene zuerst, dann nach Klausurtermin.
           </p>
         )}
@@ -108,8 +108,8 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
                 .sort((a, b) => natSort(a.titel, b.titel))
                 .map((t) => (
                   <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
-                    <Link href={`/lernen/${t.id}`} className="flex-1 hover:underline">
-                      {t.titel}
+                    <Link href={`/lernen/${t.id}`} className="min-w-0 flex-1 break-words hover:underline" title={t.titel}>
+                      {kurzTitel(t.titel)}
                     </Link>
                     {t.status === "fertig" && stand[t.id] && (
                       <span className="flex items-center gap-1.5 text-xs text-zinc-500" title={`${stand[t.id].geuebt} von ${stand[t.id].n} Fragen geübt`}>

@@ -40,11 +40,11 @@ export default async function Kalender({ searchParams }: { searchParams: Promise
         </div>
         <Legende />
         <Fehler fehler={fehler} />
-        <div className="grid gap-3 md:grid-cols-7">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           {tage.map((k) => {
             const tagTermine = termine.filter((t) => t.start < tagStart(plusTage(k, 1)) && t.ende > tagStart(k));
             return (
-              <section key={k} className={`karte md:p-3 ${k === heute ? "ring-2 ring-sky-500" : ""}`}>
+              <section key={k} className={`karte xl:p-3 ${k === heute ? "ring-2 ring-sky-500" : ""}`}>
                 <h2 className="text-sm font-semibold">{fmtTagKurz(k)}</h2>
                 <TerminListe termine={tagTermine} leer="–" />
               </section>

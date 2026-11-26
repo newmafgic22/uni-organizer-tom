@@ -31,9 +31,9 @@ export function MaterialListe({
               .get(k)!
               .sort((a, b) => natSort(a.dateiname, b.dateiname))
               .map((d) => (
-                <li key={d.id} className="flex items-center gap-3 py-2">
+                <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 sm:flex-nowrap">
                   <span aria-hidden>{icon(d.dateiname)}</span>
-                  <a href={`/api/datei/${d.id}`} target="_blank" className="flex-1 break-words hover:underline">
+                  <a href={`/api/datei/${d.id}`} target="_blank" className="min-w-0 flex-1 break-words hover:underline">
                     {d.dateiname.replace(/ \(Lernmodul\)\.txt$/, " (Lernmodul)")}
                   </a>
                   <LernKnopf d={d} t={themen[d.id]} />

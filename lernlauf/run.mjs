@@ -5,8 +5,23 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const APP = process.env.APP_URL ?? "https://uni-organizer-tom-ufyt.vercel.app";
-const MAX_THEMEN = Number(process.env.MAX_THEMEN ?? 8);
+const MAX_THEMEN = Number(process.env.MAX_THEMEN ?? 40);
 const ENDE = Date.now() + Number(process.env.MAX_MINUTEN ?? 50) * 60_000;
+
+/** fetch mit Wiederholung: kurze Netzwerkaussetzer sollen keinen Lauf abbrechen */
+async function holeMitRetry(url, opt = {}, versuche = 5) {
+  for (let i = 1; ; i++) {
+    try {
+      const r = await fetch(url, opt);
+      if (r.status >= 500 && i < versuche) throw new Error(`HTTP ${r.status}`);
+      return r;
+    } catch (e) {
+      if (i >= versuche) throw e;
+      console.log(`  (Netzwerkfehler: ${e.message}, neuer Versuch ${i + 1}/${versuche})`);
+      await new Promise((ok) => setTimeout(ok, 2000 * i * i));
+    }
+  }
+}
 const MODUS = process.env.MODUS ?? "alle";
 const PROMPT = readFileSync(new URL("./prompt.md", import.meta.url), "utf8");
 
@@ -14,12 +29,12 @@ async function oidc() {
   const url = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
   const tok = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
   if (!url || !tok) throw new Error("Kein OIDC (permissions: id-token: write fehlt?)");
-  const r = await fetch(`${url}&audience=uni-organizer-lernlauf`, { headers: { Authorization: `bearer ${tok}` } });
+  const r = await holeMitRetry(`${url}&audience=uni-organizer-lernlauf`, { headers: { Authorization: `bearer ${tok}` } });
   return (await r.json()).value;
 }
 
 async function app(body) {
-  const r = await fetch(`${APP}/api/lernlauf`, {
+  const r = await holeMitRetry(`${APP}/api/lernlauf`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${await oidc()}` },
     body: JSON.stringify(body),
@@ -59,7 +74,13 @@ if (process.argv.includes("--pruefen")) {
 
 let erledigt = 0;
 while (erledigt < MAX_THEMEN && Date.now() < ENDE) {
-  const { themen } = await app({ aktion: "holen", anzahl: 1, modus: MODUS });
+  let themen;
+  try {
+    ({ themen } = await app({ aktion: "holen", anzahl: 1, modus: MODUS }));
+  } catch (e) {
+    console.log("App nicht erreichbar:", e.message);
+    break;
+  }
   if (!themen?.length) {
     console.log("Warteschlange leer.");
     break;
@@ -74,7 +95,7 @@ while (erledigt < MAX_THEMEN && Date.now() < ENDE) {
   for (const [i, z] of (t.zusatz ?? []).entries()) {
     const art = z.art === "altklausur" ? "Altklausur" : "Literatur zur Vorlesung";
     if (z.pdf_url) {
-      const r = await fetch(z.pdf_url).catch(() => null);
+      const r = await holeMitRetry(z.pdf_url).catch(() => null);
       if (!r?.ok) continue;
       const datei = `${z.art}_${i + 1}.pdf`;
       writeFileSync(join(dir, datei), Buffer.from(await r.arrayBuffer()));
@@ -91,7 +112,7 @@ while (erledigt < MAX_THEMEN && Date.now() < ENDE) {
   const c = claude(prompt, dir);
   if (c.limit) {
     console.log("Abo-Limit erreicht, nächster Versuch in einer Stunde.");
-    await app({ aktion: "fehler", id: t.id, meldung: "Limit erreicht, wird später fortgesetzt", limit: true });
+    await app({ aktion: "fehler", id: t.id, meldung: "Limit erreicht, wird später fortgesetzt", limit: true }).catch(() => {});
     break;
   }
   try {
@@ -107,7 +128,7 @@ while (erledigt < MAX_THEMEN && Date.now() < ENDE) {
     console.log(`✓ fertig${c.kosten ? ` (entspricht ${c.kosten.toFixed(2)} $ API-Preis)` : ""}`);
   } catch (e) {
     console.log("✗", e.message);
-    await app({ aktion: "fehler", id: t.id, meldung: e.message });
+    await app({ aktion: "fehler", id: t.id, meldung: e.message }).catch((x) => console.log("  Fehler konnte nicht gemeldet werden:", x.message));
   }
 }
 console.log(`\n${erledigt} Thema/Themen erledigt.`);

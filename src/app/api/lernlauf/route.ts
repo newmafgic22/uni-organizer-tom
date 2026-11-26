@@ -34,12 +34,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (body?.aktion === "holen") {
-    // Hängengebliebene Läufe (älter als 2 h) wieder freigeben
+    // Hängengebliebene Läufe wieder freigeben (Läufe laufen nie parallel, ein Thema dauert max. 25 min)
     await db
       .from("lernthemen")
       .update({ status: "wartet" })
       .eq("status", "laeuft")
-      .lt("gestartet_at", new Date(Date.now() - 2 * 3600_000).toISOString());
+      .lt("gestartet_at", new Date(Date.now() - 30 * 60_000).toISOString());
 
     const nurSofort = body.modus === "sofort";
     const anzahl = Math.min(Math.max(Number(body.anzahl) || 1, 1), 5);

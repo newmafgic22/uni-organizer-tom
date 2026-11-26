@@ -112,7 +112,7 @@ def test_ilias(user, pw):
         p = soup(rr)
         for a in p.find_all("a", href=True):
             h, t = a["href"], a.get_text(" ", strip=True)
-            m = re.search(r"(?:target=crs_|_crs_|crs_)(\d+)", h)
+            m = re.search(r"(?:target=crs_|_crs_|crs_|goto.php/crs/)(\d+)", h)
             if m and t and len(t) > 3:
                 kurse.setdefault(m.group(1), t)
         if kurse:

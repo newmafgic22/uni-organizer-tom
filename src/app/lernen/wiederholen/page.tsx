@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Abfrage, type Karte } from "@/components/Abfrage";
 import { requireUser } from "@/lib/supabase/server";
-import type { KatalogFrage } from "@/lib/lernen";
+import { kurzTitel, type KatalogFrage } from "@/lib/lernen";
 import { ladeWiederholen, sitzung } from "@/lib/wiederholen";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export default async function Wiederholen({ searchParams }: { searchParams: Prom
   const karten: Karte[] = auswahl.map((s) => {
     const t = nachId.get(s.thema_id)!;
     const f = (t.katalog as KatalogFrage[])[s.nr];
-    return { ...f, themaId: t.id, nr: s.nr, thema: t.titel.replace(/^(\d+)\s+\S+\s+HWS2026\s+/i, "$1 ").replace(/^GWP (\d+) HWS 2026 /, "$1 ") };
+    return { ...f, themaId: t.id, nr: s.nr, thema: kurzTitel(t.titel) };
   });
   const faellig = status.filter((s) => s.faellig).length;
   const neue = status.filter((s) => s.neu).length;

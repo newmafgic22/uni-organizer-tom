@@ -1,6 +1,7 @@
 import { baueIcs } from "@/lib/ical";
 import { ladeTermine } from "@/lib/daten";
 import { createAdminClient } from "@/lib/supabase/server";
+import { ladeLernplan } from "@/lib/lernplan";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   const von = new Date(jetzt - 30 * 86400000);
   const bis = new Date(jetzt + 240 * 86400000);
   const { termine } = await ladeTermine(admin, von, bis, data.user_id);
-  return new Response(baueIcs(termine), {
+  const plan = await ladeLernplan(admin, termine, data.user_id).catch(() => []);
+  return new Response(baueIcs([...termine, ...plan]), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'inline; filename="uni-app.ics"',

@@ -3,6 +3,7 @@ import { Nav } from "@/components/Nav";
 import { Fehler, Legende, TerminListe } from "@/components/TerminListe";
 import { ladeTermine } from "@/lib/daten";
 import { requireUser } from "@/lib/supabase/server";
+import { ladeLernplan } from "@/lib/lernplan";
 import { fmtTagKurz, plusTage, tagKey, tagStart, wochenStart } from "@/lib/zeit";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +14,17 @@ export default async function Kalender({ searchParams }: { searchParams: Promise
   const montag = wochenStart(new Date(), n);
   const tage = Array.from({ length: 7 }, (_, i) => plusTage(montag, i));
   const { supabase } = await requireUser();
-  const { termine, fehler } = await ladeTermine(supabase, tagStart(montag), tagStart(plusTage(montag, 7)));
   const heute = tagKey(new Date());
+  // Für den Lernplan braucht es alle Termine bis zur letzten Klausur, nicht nur diese Woche
+  const von = tagStart(montag < heute ? montag : heute);
+  const bis = tagStart(plusTage(montag < heute ? heute : montag, 70));
+  const { termine: alle, fehler } = await ladeTermine(supabase, von, bis);
+  const plan = await ladeLernplan(supabase, alle).catch(() => []);
+  const wocheVon = tagStart(montag);
+  const wocheBis = tagStart(plusTage(montag, 7));
+  const termine = [...alle, ...plan]
+    .filter((t) => t.start < wocheBis && t.ende > wocheVon)
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
 
   return (
     <>

@@ -62,9 +62,10 @@ export function sitzung(status: Status[], mitNeuen: boolean, max = 40) {
 type Db = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** Lädt fertige Themen + Antworten und berechnet den Wiederhol-Status aller Katalogfragen. */
-export async function ladeWiederholen(supabase: Db, kursId?: string) {
+export async function ladeWiederholen(supabase: Db, kursId?: string, userId?: string) {
   let q = supabase.from("lernthemen").select("id, titel, fertig_at, klausur_am, katalog, course_id, courses(name)").eq("status", "fertig");
   if (kursId) q = q.eq("course_id", kursId);
+  if (userId) q = q.eq("user_id", userId);
   const { data: themen } = await q;
   // Supabase liefert höchstens 1000 Zeilen pro Abfrage → seitenweise laden
   const antworten: Antwort[] = [];
@@ -73,6 +74,7 @@ export async function ladeWiederholen(supabase: Db, kursId?: string) {
       .from("antworten")
       .select("thema_id, nr, bewertung, created_at")
       .eq("art", "katalog")
+      .eq(userId ? "user_id" : "art", userId ?? "katalog")
       .order("created_at")
       .range(von, von + 999);
     antworten.push(...((data ?? []) as Antwort[]));

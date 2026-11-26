@@ -90,3 +90,7 @@ export function wirdZitiert(dateiname: string, vorlesung: string, autorEindeutig
   const jahr = autorEindeutig ? "(?:19|20)\\d{2}" : a.jahr;
   return new RegExp(`${autor}[^\\n]{0,60}?${jahr}`, "i").test(vorlesung);
 }
+
+/** "02 Bildungspsychologie HWS2026 Auffassungen…" → "02 Auffassungen…", "GWP 07 HWS 2026 CurrBed" → "07 CurrBed" */
+export const kurzTitel = (titel: string) =>
+  titel.replace(/^(\d+)\s+\S+\s+H[WS]{2}\s?20\d\d\s+/i, "$1 ").replace(/^[A-Z]{2,5} (\d+) H[WS]{2}\s?20\d\d /i, "$1 ");

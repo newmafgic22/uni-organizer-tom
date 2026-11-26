@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { ladeTermine } from "@/lib/daten";
 import { istKlausur } from "@/lib/ical";
 import { klausurFuer } from "@/lib/lernen";
+import { berlinZeit } from "@/lib/zeit";
 import { lohntThema, themenAnlegen } from "@/lib/einreihen";
 import { bewerteObjekt, findeLinks, normalisiere, zusammenfassen } from "@/lib/links";
 
@@ -125,6 +126,57 @@ export async function POST(req: NextRequest) {
     if (ids.length) await db.from("materials").update({ links_gescannt: true }).in("id", ids);
     const { count } = await db.from("materials").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("links_gescannt", false);
     return NextResponse.json({ ok: true, gescannt: ids.length, links: n, rest: count ?? 0 });
+  }
+
+  if (body.aktion === "portal2") {
+    // Prüfungsanmeldungen (Belegungen) und Noten (Meine Leistungen) aus Portal2
+    const txt = (x: unknown, n = 300) => (typeof x === "string" && x.trim() ? x.trim().slice(0, n) : null);
+    const zahl = (x: unknown) => (typeof x === "number" && Number.isFinite(x) ? x : null);
+    const jetzt = new Date().toISOString();
+    const anm = (Array.isArray(body.pruefungen) ? body.pruefungen : [])
+      .filter((p: Record<string, unknown>) => txt(p?.nummer) && txt(p?.titel))
+      .map((p: Record<string, unknown>) => {
+        const datum = typeof p.datum === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.datum) ? p.datum : null;
+        const zeit = (z: unknown) => (typeof z === "string" && /^\d{1,2}:\d{2}$/.test(z) ? z : null);
+        const von = datum && zeit(p.von);
+        const bis = datum && zeit(p.bis);
+        return {
+          user_id: userId,
+          nummer: txt(p.nummer, 80),
+          titel: txt(p.titel),
+          beginn: datum ? berlinZeit(datum, von || "00:00").toISOString() : null,
+          ende: datum && bis ? berlinZeit(datum, bis).toISOString() : null,
+          raum: txt(p.raum),
+          form: txt(p.form),
+          status: txt(p.status, 60),
+          versuch: Number(p.versuch) || null,
+          angemeldet: true,
+          updated_at: jetzt,
+        };
+      });
+    const noten = (Array.isArray(body.leistungen) ? body.leistungen : [])
+      .filter((l: Record<string, unknown>) => txt(l?.nummer) && txt(l?.titel))
+      .map((l: Record<string, unknown>) => ({
+        user_id: userId,
+        nummer: txt(l.nummer, 80),
+        titel: txt(l.titel),
+        note: zahl(l.note),
+        ects: zahl(l.ects),
+        status: txt(l.status, 60),
+        freigabe: txt(l.freigabe, 40),
+        updated_at: jetzt,
+      }));
+    if (anm.length) {
+      // nicht mehr angemeldete Prüfungen (z. B. abgemeldet oder schon benotet) markieren
+      await db.from("pruefungen").update({ angemeldet: false }).eq("user_id", userId).not("nummer", "in", `(${anm.map((a: { nummer: string }) => `"${a.nummer}"`).join(",")})`);
+      const { error } = await db.from("pruefungen").upsert(anm, { onConflict: "user_id,nummer" });
+      if (error) return NextResponse.json({ fehler: error.message }, { status: 500 });
+    }
+    if (noten.length) {
+      const { error } = await db.from("pruefungen").upsert(noten, { onConflict: "user_id,nummer" });
+      if (error) return NextResponse.json({ fehler: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, pruefungen: anm.length, leistungen: noten.length });
   }
 
   if (body.aktion === "ende") {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { requireUser } from "@/lib/supabase/server";
-import { STATUS_TEXT } from "@/lib/lernen";
+import { STATUS_TEXT, anzeigeName } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 import { ladeWiederholen } from "@/lib/wiederholen";
 import { fmtDatum } from "@/lib/zeit";
@@ -41,7 +41,7 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
 
   const kurse = new Map<string, Zeile[]>();
   themen.forEach((t) => {
-    const k = t.courses?.name ?? "Sonstiges";
+    const k = t.courses?.name ? anzeigeName(t.courses.name) : "Sonstiges";
     if (!kurse.has(k)) kurse.set(k, []);
     kurse.get(k)!.push(t);
   });

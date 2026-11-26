@@ -42,3 +42,9 @@ export const fmtTagKurz = (key: string) =>
   );
 export const fmtDatum = (d: Date) =>
   new Intl.DateTimeFormat("de-DE", { timeZone: TZ, weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" }).format(d);
+
+/** Uhrzeit "HH:MM" am Tag key (Berliner Zeit) als Date */
+export function berlinZeit(key: string, hhmm: string) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return new Date(tagStart(key).getTime() + ((h || 0) * 60 + (m || 0)) * 60000);
+}

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Abfrage, type Karte } from "@/components/Abfrage";
 import { requireUser } from "@/lib/supabase/server";
-import { kurzTitel, type KatalogFrage } from "@/lib/lernen";
+import { anzeigeName, klausurFuer, kurzTitel, type KatalogFrage } from "@/lib/lernen";
+import type { Termin } from "@/lib/ical";
 import { probeAuswahl } from "@/lib/probeklausur";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,12 @@ export default async function Probeklausur({ searchParams }: { searchParams: Pro
   if (!k) notFound();
   const { data } = await supabase.from("lernthemen").select("id, titel, katalog").eq("course_id", kurs).eq("status", "fertig");
   const themen = (data ?? []).map((t) => ({ id: t.id, titel: kurzTitel(t.titel), katalog: (t.katalog ?? []) as KatalogFrage[] }));
-  const { karten, minuten, mcBevorzugt } = probeAuswahl(themen, k.klausur_info ?? "", Number(n) || 30);
+  // echte Klausurdauer aus der Portal2-Anmeldung (z. B. Quantitative Methoden: 45 Minuten) hat Vorrang
+  const { data: pr } = await supabase.from("pruefungen").select("titel, beginn, ende").eq("angemeldet", true).not("ende", "is", null);
+  const anm = (pr ?? []).find((p) => klausurFuer(k.name, [{ titel: p.titel } as Termin]));
+  const dauer = anm ? Math.round((Date.parse(anm.ende) - Date.parse(anm.beginn)) / 60000) : 0;
+  const info = (dauer > 0 ? `${dauer} Minuten. ` : "") + (k.klausur_info ?? "");
+  const { karten, minuten, mcBevorzugt } = probeAuswahl(themen, info, Number(n) || 30);
   const liste: Karte[] = karten.map((x) => ({ ...x.frage, themaId: x.themaId, nr: x.nr, thema: x.thema }));
 
   return (
@@ -26,7 +32,7 @@ export default async function Probeklausur({ searchParams }: { searchParams: Pro
         <Link href="/lernen" className="text-sm text-zinc-500">← Lernen</Link>
         <h1 className="text-2xl font-semibold">Probeklausur</h1>
         <p className="text-sm text-zinc-500">
-          {k.name} · {liste.length} Fragen aus {themen.length} Themen · {minuten} Minuten{mcBevorzugt ? " · vor allem Multiple Choice wie in der Klausur" : ""}.
+          {anzeigeName(k.name)} · {liste.length} Fragen aus {themen.length} Themen · {minuten} Minuten{mcBevorzugt ? " · vor allem Multiple Choice wie in der Klausur" : ""}.
           Offene Fragen bewertest du selbst ehrlich, MC wird automatisch bewertet. Bestanden ab 50 %.
         </p>
         {liste.length ? (

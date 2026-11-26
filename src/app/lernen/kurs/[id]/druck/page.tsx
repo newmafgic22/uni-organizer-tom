@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Drucken } from "@/components/Drucken";
 import { requireUser } from "@/lib/supabase/server";
 import { markdown } from "@/lib/markdown";
-import { kurzTitel, type KatalogFrage } from "@/lib/lernen";
+import { anzeigeName, kurzTitel, type KatalogFrage } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export default async function KursLernzettel({
       <Drucken />
       <div>
         <p className="text-sm">Lernzettel</p>
-        <h1 className="text-2xl font-semibold">{kurs.name}</h1>
+        <h1 className="text-2xl font-semibold">{anzeigeName(kurs.name)}</h1>
         <p className="text-sm">
           {themen.length} Themen ·{" "}
           <a className="underline print:hidden" href="?nur=zusammenfassung">nur Zusammenfassungen</a>{" "}

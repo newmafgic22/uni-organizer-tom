@@ -78,3 +78,14 @@ test("Organisatorisches ist kein Lernthema", () => {
   assert.equal(istHauptdatei("GWP_01_HWS_2026_Organisatorisches.pdf"), false);
   assert.equal(istHauptdatei("GWP_02_HWS_2026_Grundfragen.pdf"), true);
 });
+
+import { anzeigeName } from "../src/lib/lernen.ts";
+test("anzeigeName macht Kursnamen verständlich", () => {
+  assert.equal(anzeigeName("BW 1: Einführung in die Bildungspsychologie [V] [1. PG] (HWS 2026)"), "Bildungspsychologie");
+  assert.equal(anzeigeName("CC 303 Quantitative Methoden VL [1. PG]"), "Quantitative Methoden");
+  assert.equal(anzeigeName("Grundlagen der Volkswirtschaftslehre [V] (HWS 2026)"), "Grundlagen der Volkswirtschaftslehre");
+  assert.equal(anzeigeName("ANG 169 B.Sc. WiPäd: FSK Englisch Level 2, Course C [3. PG]"), "Englisch Level 2");
+  assert.equal(anzeigeName("Analysis [V] (HWS 2026)"), "Analysis");
+  assert.equal(anzeigeName("Klausur CC 303 Quantitative Methoden VL"), "Klausur Quantitative Methoden");
+  assert.equal(anzeigeName("Fachbereich Wirtschaftspädagogik"), "Fachbereich Wirtschaftspädagogik");
+});

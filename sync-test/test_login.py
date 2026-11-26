@@ -8,6 +8,7 @@ Start:  python test_login.py
 """
 import getpass
 import re
+import os
 import sys
 
 try:
@@ -20,6 +21,16 @@ except ImportError:
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) uni-organizer-test"}
 ILIAS = "https://ilias.uni-mannheim.de"
 PORTAL = "https://portal2.uni-mannheim.de"
+
+
+DEBUG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "debug")
+
+
+def dump(name, r):
+    """Speichert eine Seite lokal in sync-test/debug (ohne Passwort) zur Fehlersuche."""
+    os.makedirs(DEBUG_DIR, exist_ok=True)
+    with open(os.path.join(DEBUG_DIR, name + ".html"), "w", encoding="utf-8") as f:
+        f.write(f"<!-- URL: {r.url} | Status: {r.status_code} -->\n" + r.text)
 
 
 def soup(r):
@@ -79,15 +90,18 @@ def test_ilias(user, pw):
         print("Login unklar, gelandet auf:", r.url)
         return False
     print("Login OK  ->", r.url.split("?")[0])
+    dump("ilias_nach_login", r)
 
     kurse = {}
     for url in (f"{ILIAS}/ilias.php?baseClass=ilmembershipoverviewgui",
                 f"{ILIAS}/ilias.php?baseClass=ilDashboardGUI&cmd=jumpToMemberships",
                 f"{ILIAS}/ilias.php?baseClass=ilDashboardGUI&cmd=show"):
         try:
-            p = soup(s.get(url))
+            rr = s.get(url)
         except requests.RequestException:
             continue
+        dump("ilias_" + re.sub(r"\W+", "_", url.split("baseClass=")[1])[:40], rr)
+        p = soup(rr)
         for a in p.find_all("a", href=True):
             h, t = a["href"], a.get_text(" ", strip=True)
             m = re.search(r"(?:target=crs_|_crs_|crs_)(\d+)", h)
@@ -121,6 +135,9 @@ def test_portal2(user, pw):
     data = form_data(form)
     data.update({"asdf": user, "fdsa": pw})
     r = s.post(requests.compat.urljoin(r.url, form.get("action")), data=data)
+    dump("portal2_nach_login", r)
+    r2 = s.get(start)
+    dump("portal2_startseite_danach", r2)
     page = soup(r)
     logged_in = page.find("input", {"name": "fdsa"}) is None or "Abmelden" in r.text or "logout" in r.text.lower()
     if not logged_in or "Anmeldung fehlgeschlagen" in r.text:

@@ -3,6 +3,7 @@ import { Nav } from "@/components/Nav";
 import { requireUser } from "@/lib/supabase/server";
 import { STATUS_TEXT } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
+import { ladeWiederholen } from "@/lib/wiederholen";
 import { fmtDatum } from "@/lib/zeit";
 import { sofortBearbeiten, nochmal } from "./actions";
 
@@ -28,13 +29,16 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
     .select("id, titel, status, sofort, klausur_am, fehler, katalog, course_id, courses(name)")
     .order("created_at");
   const themen = (data ?? []) as unknown as Zeile[];
-  const { data: antw } = await supabase.from("antworten").select("thema_id, bewertung");
-  const quote: Record<string, { r: number; n: number }> = {};
-  (antw ?? []).forEach((a) => {
-    const q = (quote[a.thema_id] ??= { r: 0, n: 0 });
+  // Lernstand je Thema: wie viele Fragen sitzen (zuletzt gewusst), wie viele geübt
+  const { status } = await ladeWiederholen(supabase);
+  const stand: Record<string, { sitzt: number; geuebt: number; n: number }> = {};
+  for (const x of status) {
+    const q = (stand[x.thema_id] ??= { sitzt: 0, geuebt: 0, n: 0 });
     q.n++;
-    q.r += a.bewertung === "richtig" ? 1 : a.bewertung === "teilweise" ? 0.5 : 0;
-  });
+    if (!x.neu) q.geuebt++;
+    if (x.serie >= 1) q.sitzt++;
+  }
+  const schwach = status.filter((x) => !x.neu && x.serie === 0).length;
 
   const kurse = new Map<string, Zeile[]>();
   themen.forEach((t) => {
@@ -58,6 +62,11 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
           <Link href="/lernen/wiederholen" className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white">
             🔁 Heute wiederholen
           </Link>
+          {schwach > 0 && (
+            <Link href="/lernen/wiederholen?schwach=1" className="rounded-md border border-red-500 px-3 py-1.5 text-sm text-red-600">
+              Schwächen üben ({schwach})
+            </Link>
+          )}
         </div>
         {hinweis === "sofort-voll" && (
           <p className="karte text-sm text-amber-600">Es sind schon 2 Themen vorgezogen. Warte, bis die fertig sind.</p>
@@ -83,6 +92,9 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
                   <Link href={`/lernen/wiederholen?neu=1&kurs=${liste[0].course_id}`} className="text-sky-600">
                     Kurs üben
                   </Link>
+                  <Link href={`/lernen/probeklausur?kurs=${liste[0].course_id}`} className="text-sky-600">
+                    Probeklausur
+                  </Link>
                   <Link href={`/lernen/kurs/${liste[0].course_id}/druck`} className="text-sky-600">
                     Lernzettel (PDF)
                   </Link>
@@ -100,8 +112,16 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
                     <Link href={`/lernen/${t.id}`} className="flex-1 hover:underline">
                       {t.titel}
                     </Link>
-                    {t.status === "fertig" && quote[t.id] && (
-                      <span className="text-xs text-zinc-500">{Math.round((quote[t.id].r / quote[t.id].n) * 100)} % gewusst</span>
+                    {t.status === "fertig" && stand[t.id] && (
+                      <span className="flex items-center gap-1.5 text-xs text-zinc-500" title={`${stand[t.id].geuebt} von ${stand[t.id].n} Fragen geübt`}>
+                        <span className="h-1.5 w-16 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                          <span
+                            className="block h-full bg-emerald-500"
+                            style={{ width: `${Math.round((stand[t.id].sitzt / stand[t.id].n) * 100)}%` }}
+                          />
+                        </span>
+                        {stand[t.id].sitzt}/{stand[t.id].n} sitzen
+                      </span>
                     )}
                     <span
                       className={`rounded-md px-2 py-0.5 text-xs ${

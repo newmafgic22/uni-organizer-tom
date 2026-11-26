@@ -21,11 +21,13 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
   if (q.trim()) {
     const { data } = await supabase
       .from("materials")
-      .select("id, course_id, ordner, dateiname, groesse, updated_at")
+      .select("id, course_id, ordner, dateiname, groesse, updated_at, hat_text")
       .textSearch("such", q, { config: "german", type: "websearch" })
       .limit(100);
     treffer = data ?? [];
   }
+  const { data: lt } = q.trim() ? await supabase.from("lernthemen").select("id, status, material_id") : { data: [] };
+  const themen = Object.fromEntries((lt ?? []).map((t) => [t.material_id, { id: t.id, status: t.status }]));
 
   const liste = (kurse ?? []).filter((k) => alle || !k.ausgeblendet).sort((a, b) => natSort(a.name, b.name));
   const versteckt = (kurse ?? []).filter((k) => k.ausgeblendet).length;
@@ -43,7 +45,7 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
             <p className="text-sm text-zinc-500">
               {treffer.length} Treffer für „{q}“ · <Link href="/material" className="underline">zurück</Link>
             </p>
-            <MaterialListe dateien={treffer} kursNamen={kursNamen} />
+            <MaterialListe dateien={treffer} kursNamen={kursNamen} themen={themen} />
           </>
         ) : (
           <>

@@ -1,0 +1,52 @@
+name: Lernlauf
+
+on:
+  schedule:
+    - cron: "23 * * * *" # stündlich; macht weiter, sobald das Abo-Limit wieder frei ist
+  workflow_dispatch:
+    inputs:
+      modus:
+        description: "alle oder sofort"
+        default: "alle"
+
+permissions:
+  contents: read
+  id-token: write # für die Anmeldung bei der App (ohne gespeichertes Geheimnis)
+
+concurrency:
+  group: lernlauf
+  cancel-in-progress: false
+
+jobs:
+  lernlauf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 58
+    steps:
+      - name: Token vorhanden?
+        id: check
+        env:
+          OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          API: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$OAUTH$API" ]; then echo "Kein CLAUDE_CODE_OAUTH_TOKEN/ANTHROPIC_API_KEY gesetzt – überspringe."; echo "los=nein" >> "$GITHUB_OUTPUT"; else echo "los=ja" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.los == 'ja'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.los == 'ja'
+        with:
+          node-version: 22
+      - name: Warteschlange prüfen
+        id: queue
+        if: steps.check.outputs.los == 'ja'
+        run: node lernlauf/run.mjs --pruefen
+      - name: Claude Code installieren
+        if: steps.queue.outputs.anzahl > 0
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Lernmaterial erstellen
+        if: steps.queue.outputs.anzahl > 0
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Reserve: nur wenn kein Abo-Token gesetzt ist, wird der API-Schlüssel benutzt
+          ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
+          MODUS: ${{ github.event.inputs.modus || 'alle' }}
+        run: node lernlauf/run.mjs

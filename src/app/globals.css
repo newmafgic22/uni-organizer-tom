@@ -10,3 +10,23 @@ body {
 .karte {
   @apply rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900;
 }
+
+/* Markdown-Zusammenfassungen */
+.prosa h1 { font-size: 1.4rem; font-weight: 600; margin: 1rem 0 0.5rem; }
+.prosa h2 { font-size: 1.2rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+.prosa h3 { font-size: 1.05rem; font-weight: 600; margin: 1rem 0 0.4rem; }
+.prosa p { margin: 0.5rem 0; line-height: 1.6; }
+.prosa ul { list-style: disc; padding-left: 1.4rem; margin: 0.5rem 0; }
+.prosa ol { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0; }
+.prosa li { margin: 0.2rem 0; line-height: 1.55; }
+.prosa code { font-family: ui-monospace, monospace; font-size: 0.9em; background: rgb(127 127 127 / 0.12); padding: 0 0.25rem; border-radius: 0.25rem; }
+.prosa table { border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+.prosa th, .prosa td { border: 1px solid rgb(127 127 127 / 0.4); padding: 0.3rem 0.5rem; text-align: left; vertical-align: top; }
+.prosa blockquote { border-left: 3px solid rgb(127 127 127 / 0.4); padding-left: 0.75rem; color: rgb(113 113 122); }
+
+@media print {
+  header, nav { display: none !important; }
+  .druck { max-width: none; padding: 0; }
+  .seitenumbruch { break-before: page; }
+  body { background: white !important; color: black !important; }
+}

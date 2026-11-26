@@ -1,6 +1,18 @@
+import Link from "next/link";
 import { fmtGroesse, icon, natSort, type Material } from "@/lib/material";
+import { themaAnlegen } from "@/app/lernen/actions";
 
-export function MaterialListe({ dateien, kursNamen }: { dateien: Material[]; kursNamen?: Record<string, string> }) {
+export type ThemaKurz = { id: string; status: string };
+
+export function MaterialListe({
+  dateien,
+  kursNamen,
+  themen = {},
+}: {
+  dateien: Material[];
+  kursNamen?: Record<string, string>;
+  themen?: Record<string, ThemaKurz>;
+}) {
   const gruppen = new Map<string, Material[]>();
   for (const d of dateien) {
     const key = (kursNamen ? `${kursNamen[d.course_id] ?? ""} › ` : "") + (d.ordner || "");
@@ -24,6 +36,7 @@ export function MaterialListe({ dateien, kursNamen }: { dateien: Material[]; kur
                   <a href={`/api/datei/${d.id}`} target="_blank" className="flex-1 break-words hover:underline">
                     {d.dateiname.replace(/ \(Lernmodul\)\.txt$/, " (Lernmodul)")}
                   </a>
+                  <LernKnopf d={d} t={themen[d.id]} />
                   <span className="whitespace-nowrap text-xs text-zinc-500">{fmtGroesse(d.groesse)}</span>
                   <a href={`/api/datei/${d.id}?download`} className="text-xs text-sky-600" title="Herunterladen">
                     ⬇
@@ -34,6 +47,26 @@ export function MaterialListe({ dateien, kursNamen }: { dateien: Material[]; kur
         </section>
       ))}
     </div>
+  );
+}
+
+function LernKnopf({ d, t }: { d: Material; t?: ThemaKurz }) {
+  if (t) {
+    const text = t.status === "fertig" ? "🧠 Lernen" : t.status === "fehler" ? "⚠ Fehler" : "⏳ in Arbeit";
+    return (
+      <Link href={`/lernen/${t.id}`} className="whitespace-nowrap rounded-md bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800">
+        {text}
+      </Link>
+    );
+  }
+  if (!d.hat_text) return null;
+  return (
+    <form action={themaAnlegen}>
+      <input type="hidden" name="material_id" value={d.id} />
+      <button className="whitespace-nowrap rounded-md border border-sky-600 px-2 py-0.5 text-xs text-sky-600" title="Zusammenfassung, Abfragekatalog und Übungsaufgaben erstellen lassen">
+        + Lernmaterial
+      </button>
+    </form>
   );
 }
 

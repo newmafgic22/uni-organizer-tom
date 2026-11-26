@@ -21,3 +21,7 @@ test("MC-Klausur bevorzugt MC und nimmt die Zeit aus den Infos", () => {
   assert.equal(r.karten.filter((k) => k.themaId === "a" && k.frage.optionen).length, 1);
   assert.equal(probeAuswahl(themen, "60 Minuten", 100).minuten, 12);
 });
+
+test("Offene Klausur mit MC nur ergänzend bevorzugt kein MC", () => {
+  assert.equal(probeAuswahl(themen, "überwiegend offene Fragen, Multiple Choice nur ergänzend", 2).mcBevorzugt, false);
+});

@@ -49,7 +49,7 @@ export function vorlesungsNr(dateiname: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-const NEBEN = /literatur|^.*_lit_|anhang|\(\d{4}\)|\d{4}\)|zusammenfassung/i;
+const NEBEN = /literatur|^.*_lit_|anhang|\(\d{4}\)|\d{4}\)|zusammenfassung|organisatorisch/i;
 
 /** Ist das die Hauptdatei einer Vorlesung (Folien) und nicht Literatur/Anhang? */
 export function istHauptdatei(dateiname: string) {

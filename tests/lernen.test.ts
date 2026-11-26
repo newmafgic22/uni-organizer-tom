@@ -73,3 +73,8 @@ test("kurzTitel", () => {
   assert.equal(kurzTitel("11 Bildungspsychologie HSW2026 Unterrichtsqualitaet II"), "11 Unterrichtsqualitaet II");
   assert.equal(kurzTitel("GWP 07 HWS 2026 CurrBed"), "07 CurrBed");
 });
+
+test("Organisatorisches ist kein Lernthema", () => {
+  assert.equal(istHauptdatei("GWP_01_HWS_2026_Organisatorisches.pdf"), false);
+  assert.equal(istHauptdatei("GWP_02_HWS_2026_Grundfragen.pdf"), true);
+});

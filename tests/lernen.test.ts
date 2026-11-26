@@ -88,6 +88,7 @@ test("Organisatorisches ist kein Lernthema", () => {
 
 import { anzeigeName } from "../src/lib/lernen.ts";
 test("anzeigeName macht Kursnamen verständlich", () => {
+  assert.equal(anzeigeName("CC 302 / CC 303 Finanzmathematik / Quantitative Methoden TUT | Tutorium"), "Finanzmathematik / Quantitative Methoden TUT | Tutorium");
   assert.equal(anzeigeName("BW 1: Einführung in die Bildungspsychologie [V] [1. PG] (HWS 2026)"), "Bildungspsychologie");
   assert.equal(anzeigeName("CC 303 Quantitative Methoden VL [1. PG]"), "Quantitative Methoden");
   assert.equal(anzeigeName("Grundlagen der Volkswirtschaftslehre [V] (HWS 2026)"), "Grundlagen der Volkswirtschaftslehre");

@@ -117,6 +117,7 @@ export function anzeigeName(name: string): string {
   const kern = name
     .slice(praefix.length)
     .replace(/\s*\[[^\]]*\]|\s*\([^)]*\)/g, "")
+    .replace(/^(?:[A-Z]{2,4}\s?\d{1,3}\s*\/\s*)+/, "") // "CC 302 / CC 303 …" → "CC 303 …"
     .replace(/^[A-Z]{2,4}\s?\d{1,3}\b\s*(?:B\.\s?Sc\.\s*WiPäd)?\s*:?\s*/, "")
     .replace(/^FSK\s+/, "")
     .replace(/,\s*Course\s+\w+$/i, "")

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { antwortSpeichern } from "@/app/lernen/actions";
 
 export type Karte = {
@@ -15,7 +15,24 @@ export type Karte = {
 
 const AFB = ["", "AFB I", "AFB II", "AFB III"];
 
-export function Abfrage({ themaId, karten, ende }: { themaId?: string; karten: Karte[]; ende?: ReactNode }) {
+export function Abfrage({
+  themaId,
+  karten,
+  ende,
+  zeitMin,
+  bestehen,
+}: {
+  themaId?: string;
+  karten: Karte[];
+  ende?: ReactNode;
+  /** Probeklausur: Zeitlimit in Minuten */
+  zeitMin?: number;
+  /** Probeklausur: Bestehensgrenze in Prozent */
+  bestehen?: number;
+}) {
+  const probe = zeitMin !== undefined;
+  const [startZeit] = useState(() => Date.now());
+  const [rest, setRest] = useState(zeitMin ? zeitMin * 60 : 0);
   const [filter, setFilter] = useState(0);
   const [mischen, setMischen] = useState(false);
   const [pos, setPos] = useState(0);
@@ -32,6 +49,25 @@ export function Abfrage({ themaId, karten, ende }: { themaId?: string; karten: K
   }, [karten, filter, mischen, nurMc]);
   const k = liste[pos];
   const fertig = pos >= liste.length;
+  useEffect(() => {
+    if (!probe || fertig) return;
+    const id = setInterval(() => {
+      const r = Math.max(0, Math.round((zeitMin! * 60_000 - (Date.now() - startZeit)) / 1000));
+      setRest(r);
+      if (r === 0) setPos(liste.length); // Zeit um → Abgabe
+    }, 1000);
+    return () => clearInterval(id);
+  }, [probe, fertig, zeitMin, startZeit, liste.length]);
+  const punkte = liste.reduce((s, x) => s + (ergebnis[x.idx] === "richtig" ? 1 : ergebnis[x.idx] === "teilweise" ? 0.5 : 0), 0);
+  const prozent = liste.length ? Math.round((punkte / liste.length) * 100) : 0;
+  const proThema = new Map<string, { p: number; n: number }>();
+  for (const x of liste) {
+    if (!x.thema) continue;
+    const t = proThema.get(x.thema) ?? { p: 0, n: 0 };
+    t.n++;
+    t.p += ergebnis[x.idx] === "richtig" ? 1 : ergebnis[x.idx] === "teilweise" ? 0.5 : 0;
+    proThema.set(x.thema, t);
+  }
   const werte = Object.values(ergebnis);
 
   function bewerten(b: string) {
@@ -59,7 +95,12 @@ export function Abfrage({ themaId, karten, ende }: { themaId?: string; karten: K
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
+      {probe && !fertig && (
+        <div className={`sticky top-14 z-10 self-end rounded-md px-3 py-1 text-sm font-semibold tabular-nums ${rest < 300 ? "bg-red-600 text-white" : "bg-zinc-100 dark:bg-zinc-800"}`}>
+          ⏱ {Math.floor(rest / 60)}:{String(rest % 60).padStart(2, "0")}
+        </div>
+      )}
+      <div className={`flex flex-wrap gap-2 ${probe ? "hidden" : ""}`}>
         {[0, 1, 2, 3].map((f) => (
           <button key={f} className={knopf(filter === f)} onClick={() => (setFilter(f), setPos(0), setOffen(false), setGewaehlt([]))}>
             {f ? AFB[f] : "Alle"} ({f ? karten.filter((x) => x.afb === f).length : karten.length})
@@ -77,7 +118,33 @@ export function Abfrage({ themaId, karten, ende }: { themaId?: string; karten: K
 
       {fertig ? (
         <div className="karte flex flex-col items-start gap-2">
-          <p className="font-semibold">Durch! 🎉</p>
+          {probe ? (
+            <>
+              <p className="text-lg font-semibold">
+                {prozent} % · {bestehen !== undefined ? (prozent >= bestehen ? "✅ bestanden" : "❌ noch nicht bestanden") : ""}
+              </p>
+              <p className="text-sm text-zinc-500">
+                {punkte} von {liste.length} Punkten (teilweise = halber Punkt){bestehen !== undefined ? `, bestanden ab ${bestehen} %` : ""}.
+                {Object.keys(ergebnis).length < liste.length ? ` ${liste.length - Object.keys(ergebnis).length} Fragen nicht mehr geschafft.` : ""}
+              </p>
+              {proThema.size > 0 && (
+                <ul className="w-full text-sm">
+                  {[...proThema]
+                    .sort((a, b) => a[1].p / a[1].n - b[1].p / b[1].n)
+                    .map(([t, x]) => (
+                      <li key={t} className="flex justify-between gap-2 border-b border-zinc-200 py-1 dark:border-zinc-800">
+                        <span className="truncate">{t}</span>
+                        <span className={`tabular-nums ${x.p / x.n < 0.5 ? "text-red-600" : "text-emerald-600"}`}>
+                          {Math.round((x.p / x.n) * 100)} %
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <p className="font-semibold">Durch! 🎉</p>
+          )}
           <p className="text-sm">
             {werte.filter((w) => w === "richtig").length} gewusst · {werte.filter((w) => w === "teilweise").length} teilweise ·{" "}
             {werte.filter((w) => w === "falsch").length} nicht gewusst

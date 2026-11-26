@@ -7,12 +7,16 @@ import { ladeWiederholen, sitzung } from "@/lib/wiederholen";
 
 export const dynamic = "force-dynamic";
 
-export default async function Wiederholen({ searchParams }: { searchParams: Promise<{ neu?: string; kurs?: string }> }) {
-  const { neu, kurs } = await searchParams;
+export default async function Wiederholen({ searchParams }: { searchParams: Promise<{ neu?: string; kurs?: string; schwach?: string }> }) {
+  const { neu, kurs, schwach } = await searchParams;
   const { supabase } = await requireUser();
   const { themen, status } = await ladeWiederholen(supabase, kurs);
   const nachId = new Map(themen.map((t) => [t.id, t]));
-  const auswahl = sitzung(status, neu === "1", 40);
+  // „Schwächen üben“: alle Fragen, die zuletzt nicht (ganz) gewusst wurden, egal ob schon fällig
+  const auswahl =
+    schwach === "1"
+      ? status.filter((s) => !s.neu && s.serie === 0).sort((a, b) => a.klausur - b.klausur).slice(0, 40)
+      : sitzung(status, neu === "1", 40);
   const karten: Karte[] = auswahl.map((s) => {
     const t = nachId.get(s.thema_id)!;
     const f = (t.katalog as KatalogFrage[])[s.nr];
@@ -27,7 +31,7 @@ export default async function Wiederholen({ searchParams }: { searchParams: Prom
       <Nav />
       <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
         <Link href="/lernen" className="text-sm text-zinc-500">← Lernen</Link>
-        <h1 className="text-2xl font-semibold">{neu === "1" ? "Wiederholen + neue Fragen" : "Heute wiederholen"}</h1>
+        <h1 className="text-2xl font-semibold">{schwach === "1" ? "Schwächen üben" : neu === "1" ? "Wiederholen + neue Fragen" : "Heute wiederholen"}</h1>
         <p className="text-sm text-zinc-500">
           {faellig} Fragen fällig · {neue} noch nie geübt. Nicht gewusst kommt heute nochmal, teilweise morgen, gewusst nach 1, 3, 7, 14 Tagen (vor der Klausur kürzer).
         </p>

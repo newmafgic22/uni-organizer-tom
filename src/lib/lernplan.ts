@@ -4,7 +4,7 @@
 import { istKlausur, type Termin } from "@/lib/ical";
 import { klausurFuer, kurzTitel } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
-import { ladeWiederholen } from "@/lib/wiederholen";
+import { ladeWiederholen, type Status } from "@/lib/wiederholen";
 import { plusTage, tagKey, tagStart } from "@/lib/zeit";
 
 export type PlanKurs = { id: string; name: string; klausur: Date; themen: { id: string; titel: string }[] };
@@ -106,12 +106,12 @@ function freierSlot(tag: string, dauer: number, belegt: Termin[], plan: Termin[]
 type Db = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** Lernplan aus den Lernthemen (alle Kurse mit Klausurtermin) und den Terminen berechnen. */
-export async function ladeLernplan(db: Db, termine: Termin[], userId?: string, jetzt = new Date()) {
+export async function ladeLernplan(db: Db, termine: Termin[], userId?: string, jetzt = new Date(), vorhanden?: Status[]) {
   let q = db.from("lernthemen").select("id, titel, course_id, status, courses(name)").neq("status", "fehler");
   if (userId) q = q.eq("user_id", userId);
   const { data } = await q;
   // Themen, deren Katalog schon zur Hälfte geübt ist, gelten als durchgearbeitet
-  const { status } = await ladeWiederholen(db, undefined, userId);
+  const status = vorhanden ?? (await ladeWiederholen(db, undefined, userId)).status;
   const proThema = new Map<string, { n: number; geuebt: number }>();
   for (const s of status) {
     const x = proThema.get(s.thema_id) ?? { n: 0, geuebt: 0 };

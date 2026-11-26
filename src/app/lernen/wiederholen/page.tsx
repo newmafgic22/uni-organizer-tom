@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function Wiederholen({ searchParams }: { searchParams: Promise<{ neu?: string; kurs?: string; schwach?: string }> }) {
   const { neu, kurs, schwach } = await searchParams;
   const { supabase } = await requireUser();
-  const { themen, status } = await ladeWiederholen(supabase, kurs);
+  const { themen, status } = await ladeWiederholen(supabase, kurs, undefined, true);
   const nachId = new Map(themen.map((t) => [t.id, t]));
   // „Schwächen üben“: alle Fragen, die zuletzt nicht (ganz) gewusst wurden, egal ob schon fällig
   const auswahl =

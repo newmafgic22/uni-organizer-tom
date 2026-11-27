@@ -34,7 +34,10 @@ export function Abfrage({
   const [startZeit] = useState(() => Date.now());
   const [rest, setRest] = useState(zeitMin ? zeitMin * 60 : 0);
   const [filter, setFilter] = useState(0);
-  const [mischen, setMischen] = useState(false);
+  // Standard: gemischt. Gemischt wird erst im Browser (seed), damit Server- und Browser-Ansicht beim Laden gleich sind.
+  const [mischen, setMischen] = useState(true);
+  const [seed, setSeed] = useState(0);
+  useEffect(() => setSeed(Math.floor(Math.random() * 2 ** 31) + 1), []);
   const [pos, setPos] = useState(0);
   const [offen, setOffen] = useState(false);
   const [ergebnis, setErgebnis] = useState<Record<number, string>>({});
@@ -44,10 +47,12 @@ export function Abfrage({
   const mcAnzahl = karten.filter((x) => x.optionen).length;
 
   const liste = useMemo(() => {
-    const l = karten.map((k, i) => ({ ...k, nr: k.nr ?? i, idx: i })).filter((k) => (!filter || k.afb === filter) && (!nurMc || k.optionen));
-    if (mischen) l.sort(() => Math.random() - 0.5);
-    return l;
-  }, [karten, filter, mischen, nurMc]);
+    const zufall = zufallsZahlen(seed);
+    const l = karten
+      .map((k, i) => ({ ...k, nr: k.nr ?? i, idx: i, optionen: k.optionen && seed ? mische(k.optionen, zufall) : k.optionen }))
+      .filter((k) => (!filter || k.afb === filter) && (!nurMc || k.optionen));
+    return mischen && seed ? mische(l, zufall) : l;
+  }, [karten, filter, mischen, nurMc, seed]);
   const k = liste[pos];
   const fertig = pos >= liste.length;
   useEffect(() => {
@@ -115,7 +120,7 @@ export function Abfrage({
             {f ? AFB[f] : "Alle"} ({f ? karten.filter((x) => x.afb === f).length : karten.length})
           </button>
         ))}
-        <button className={knopf(mischen)} onClick={() => (setMischen(!mischen), setPos(0), setOffen(false))}>
+        <button className={knopf(mischen)} onClick={() => (setMischen(!mischen), setSeed(Math.floor(Math.random() * 2 ** 31) + 1), setPos(0), setOffen(false), setGewaehlt([]))}>
           Mischen
         </button>
         {mcAnzahl > 0 && (
@@ -159,7 +164,7 @@ export function Abfrage({
             {werte.filter((w) => w === "falsch").length} nicht gewusst
           </p>
           {ende ?? (
-            <button className={knopf(true)} onClick={() => (setPos(0), setErgebnis({}))}>
+            <button className={knopf(true)} onClick={() => (setPos(0), setErgebnis({}), setSeed(Math.floor(Math.random() * 2 ** 31) + 1))}>
               Nochmal
             </button>
           )}
@@ -253,4 +258,26 @@ export function Abfrage({
       )}
     </div>
   );
+}
+
+/** Kleiner Zufallsgenerator mit Startwert (mulberry32), damit die Reihenfolge innerhalb einer Runde stabil bleibt. */
+function zufallsZahlen(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fisher-Yates: echte, gleichverteilte Mischung (Kopie). */
+export function mische<T>(liste: T[], zufall: () => number = Math.random): T[] {
+  const l = [...liste];
+  for (let i = l.length - 1; i > 0; i--) {
+    const j = Math.floor(zufall() * (i + 1));
+    [l[i], l[j]] = [l[j], l[i]];
+  }
+  return l;
 }

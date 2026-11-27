@@ -84,7 +84,7 @@ export default async function Start() {
         )}
         <Fehler fehler={fehler} />
         <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             <KlausurHero s={naechste} />
           </div>
           <WiederholenKarte status={wiederholen} />

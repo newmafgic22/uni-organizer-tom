@@ -80,7 +80,7 @@ export function Fehler({ fehler }: { fehler: string[] }) {
 
 export function Legende() {
   return (
-    <div className="flex gap-3 text-xs text-zinc-500">
+    <div className="hidden flex-wrap gap-3 text-xs text-zinc-500 sm:flex">
       <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-500" />ILIAS</span>
       <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />Portal2</span>
       <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-violet-500" />Lernplan</span>

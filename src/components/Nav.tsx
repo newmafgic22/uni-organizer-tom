@@ -100,7 +100,7 @@ export function Nav() {
             key={href}
             href={href}
             aria-current={aktiv(href) ? "page" : undefined}
-            className={`flex flex-col items-center gap-1 pt-2 pb-1.5 text-[10px] font-medium tracking-tight ${
+            className={`flex min-w-0 flex-col items-center gap-1 pt-2 pb-1.5 text-[10px] font-medium tracking-tight ${
               aktiv(href) ? "text-accent-600 dark:text-accent-400" : "text-zinc-500"
             }`}
           >

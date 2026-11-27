@@ -52,7 +52,7 @@ body {
 
 /* Bausteine */
 .karte {
-  @apply rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(16_24_40/0.04)] sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none;
+  @apply min-w-0 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(16_24_40/0.04)] sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none;
 }
 .karte-link {
   @apply transition hover:border-accent-300 hover:shadow-md dark:hover:border-accent-700;

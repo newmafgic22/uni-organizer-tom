@@ -92,6 +92,8 @@ export async function themaLoeschen(form: FormData) {
 
 export async function antwortSpeichern(themaId: string, art: "katalog" | "aufgabe", nr: number, afb: number, bewertung: string) {
   const { supabase, user } = await requireUser();
-  if (!user || !["richtig", "teilweise", "falsch"].includes(bewertung)) return;
-  await supabase.from("antworten").insert({ user_id: user.id, thema_id: themaId, art, nr, afb, bewertung });
+  if (!user || !["richtig", "teilweise", "falsch"].includes(bewertung)) return { ok: false };
+  const { error } = await supabase.from("antworten").insert({ user_id: user.id, thema_id: themaId, art, nr, afb, bewertung });
+  if (error) console.error("Antwort nicht gespeichert:", error.message);
+  return { ok: !error };
 }

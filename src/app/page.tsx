@@ -6,7 +6,7 @@ import { istKlausur } from "@/lib/ical";
 import { ladeTermine } from "@/lib/daten";
 import { requireUser } from "@/lib/supabase/server";
 import { WiederholenKarte } from "@/components/WiederholenKarte";
-import { KlausurUebersicht, type KlausurStand } from "@/components/KlausurUebersicht";
+import { KlausurHero, KlausurListe, type KlausurStand } from "@/components/KlausurUebersicht";
 import { anzeigeName, klausurFuer } from "@/lib/lernen";
 import { ladeWiederholen } from "@/lib/wiederholen";
 import { ladeLernplan } from "@/lib/lernplan";
@@ -65,34 +65,46 @@ export default async function Start() {
   const schnitt = (noten ?? []).find((n) => /-K$/.test(n.nummer));
   const einzelnoten = (noten ?? []).filter((n) => /-P$/.test(n.nummer));
 
+  const stunde = Number(new Intl.DateTimeFormat("de-DE", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/Berlin" }).format(new Date()));
+  const gruss = stunde < 5 ? "Gute Nacht" : stunde < 11 ? "Guten Morgen" : stunde < 18 ? "Hallo" : "Guten Abend";
+  const [naechste, ...weitere] = klausurStand;
+
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-5xl px-4 py-6 flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">{fmtTag(heute)}</h1>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
+        <header className="mb-1">
+          <p className="text-sm font-medium text-zinc-500">{fmtTag(heute)}</p>
+          <h1 className="seitentitel">{gruss}, Tom</h1>
+        </header>
         {anzahlQuellen === 0 && (
           <div className="karte">
-            Noch keine Kalender verbunden. <Link className="text-sky-600 underline" href="/einstellungen">Jetzt ILIAS- und Portal2-Link eintragen</Link>
+            Noch keine Kalender verbunden. <Link className="text-accent-600 underline" href="/einstellungen">Jetzt ILIAS- und Portal2-Link eintragen</Link>
           </div>
         )}
         <Fehler fehler={fehler} />
-        <div className="grid gap-4 lg:grid-cols-3">
-          <section className="karte lg:col-span-1">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Klausuren</h2>
-            <KlausurUebersicht liste={klausurStand} />
-          </section>
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
+          <div className="min-w-0 lg:col-span-2">
+            <KlausurHero s={naechste} />
+          </div>
+          <WiederholenKarte status={wiederholen} />
+        </div>
+        <div className="grid gap-4 sm:gap-5 lg:grid-cols-3">
           <section className="karte lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Heute</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="abschnitt">Heute</h2>
               <Legende />
             </div>
             <TerminListe termine={heuteListe} leer="Heute steht nichts an." />
           </section>
+          <section className="karte">
+            <h2 className="abschnitt">Weitere Klausuren</h2>
+            <KlausurListe liste={weitere} />
+          </section>
         </div>
-        <WiederholenKarte status={wiederholen} />
         {lerntools.length > 0 && (
           <section className="karte">
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+            <h2 className="abschnitt mb-3">
               Lerntools{neuTools > 0 ? ` · ${neuTools} neu` : ""}
             </h2>
             <LerntoolKacheln links={lerntools} kursNamen={kursNamen} />
@@ -101,16 +113,16 @@ export default async function Start() {
         {einzelnoten.length > 0 && (
           <section className="karte">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Noten</h2>
+              <h2 className="abschnitt">Noten</h2>
               {schnitt && (
                 <span className="text-sm text-zinc-500">
                   Schnitt <b className="text-zinc-900 dark:text-zinc-100">{Number(schnitt.note).toFixed(1).replace(".", ",")}</b> · {Number(schnitt.ects ?? 0)} ECTS
                 </span>
               )}
             </div>
-            <ul className="mt-2 divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+            <ul className="mt-2 divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
               {einzelnoten.map((n) => (
-                <li key={n.nummer} className="flex justify-between gap-2 py-1.5">
+                <li key={n.nummer} className="flex justify-between gap-2 py-2">
                   <span className="truncate">{anzeigeName(n.titel)}</span>
                   <span className="shrink-0 tabular-nums">
                     <b>{Number(n.note).toFixed(1).replace(".", ",")}</b>
@@ -123,8 +135,8 @@ export default async function Start() {
         )}
         <section className="karte">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Rest der Woche</h2>
-            <Link href="/kalender" className="text-sm text-sky-600">Ganzer Kalender →</Link>
+            <h2 className="abschnitt">Rest der Woche</h2>
+            <Link href="/kalender" className="text-sm font-medium text-accent-600 dark:text-accent-400">Ganzer Kalender →</Link>
           </div>
           <TerminTage termine={restWoche} leer="Diese Woche nichts mehr." />
         </section>

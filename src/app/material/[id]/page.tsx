@@ -37,15 +37,15 @@ export default async function KursMaterial({
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
-        <Link href="/material" className="text-sm text-zinc-500">← Alle Kurse</Link>
-        <h1 className="text-2xl font-semibold">{anzeigeName(kurs.name)}</h1>
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
+        <Link href="/material" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">← Alle Kurse</Link>
+        <h1 className="seitentitel">{anzeigeName(kurs.name)}</h1>
         <div className="karte flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             {offen > 0 || !kurs.auto_einreihen ? (
               <form action={alleEinreihen}>
                 <input type="hidden" name="kurs_id" value={kurs.id} />
-                <button className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white">
+                <button className="knopf">
                   {offen > 0 ? `Alle Vorlesungen einreihen (${offen})` : "Neue Vorlesungen automatisch einreihen"}
                 </button>
               </form>
@@ -70,7 +70,7 @@ export default async function KursMaterial({
                   type="date"
                   name="klausur_datum"
                   defaultValue={kurs.klausur_datum ?? ""}
-                  className="rounded-lg border border-zinc-300 bg-transparent px-2 py-1 dark:border-zinc-700"
+                  className="eingabe "
                 />
               </label>
               <textarea
@@ -78,16 +78,16 @@ export default async function KursMaterial({
                 defaultValue={kurs.klausur_info ?? ""}
                 rows={6}
                 placeholder="z. B. 90 Minuten, Multiple Choice + offene Fragen, relevant sind Vorlesung und Lehrbuch Kap. 3–5 …"
-                className="w-full rounded-lg border border-zinc-300 bg-transparent p-2 text-sm dark:border-zinc-700"
+                className="w-full eingabe text-sm "
               />
               <p className="text-xs text-zinc-500">Claude richtet Zusammenfassungen und Fragen danach aus (gilt für neu erstellte Themen).</p>
-              <button className="self-start rounded-md border border-sky-600 px-3 py-1 text-sm text-sky-600">Speichern</button>
+              <button className="self-start knopf-2 !py-1.5">Speichern</button>
             </form>
           </details>
         </div>
         {!q.trim() && links.length > 0 && (
           <section className="karte flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Lerntools &amp; Links</h2>
+            <h2 className="abschnitt">Lerntools &amp; Links</h2>
             <LerntoolKacheln links={links} />
             <WeitereLinks links={links} />
           </section>

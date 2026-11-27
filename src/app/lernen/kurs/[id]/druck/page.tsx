@@ -32,7 +32,7 @@ export default async function KursLernzettel({
       <Drucken />
       <div>
         <p className="text-sm">Lernzettel</p>
-        <h1 className="text-2xl font-semibold">{anzeigeName(kurs.name)}</h1>
+        <h1 className="seitentitel">{anzeigeName(kurs.name)}</h1>
         <p className="text-sm">
           {themen.length} Themen ·{" "}
           <a className="underline print:hidden" href="?nur=zusammenfassung">nur Zusammenfassungen</a>{" "}

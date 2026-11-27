@@ -6,6 +6,7 @@ import { natSort, type Material } from "@/lib/material";
 import { anzeigeName } from "@/lib/lernen";
 import { fmtDatum, fmtZeit } from "@/lib/zeit";
 import { kursSichtbarkeit } from "./actions";
+import { kurz, kursFarbe } from "@/lib/farben";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +44,8 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Material</h1>
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
+        <h1 className="seitentitel">Material</h1>
         <Suche q={q} ziel="/material" />
 
         {q.trim() ? (
@@ -61,11 +62,14 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
                 Noch keine Kurse. Sobald das Sync-Skript auf deinem PC einmal gelaufen ist, erscheinen hier deine ILIAS-Kurse.
               </p>
             )}
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {liste.map((k) => (
-                <li key={k.id} className="karte flex items-center gap-3 transition-colors hover:border-sky-400 dark:hover:border-sky-700">
+                <li key={k.id} className="karte karte-link flex items-center gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: kursFarbe(anzeigeName(k.name)) }} aria-hidden>
+                    {kurz(anzeigeName(k.name)).slice(0, 2)}
+                  </span>
                   <Link href={`/material/${k.id}`} className={`min-w-0 flex-1 ${k.ausgeblendet ? "text-zinc-400" : ""}`}>
-                    <span className="font-medium">{anzeigeName(k.name)}</span>
+                    <span className="font-semibold leading-snug">{kurz(anzeigeName(k.name))}</span>
                     <span className="block truncate text-xs text-zinc-500" title={k.name}>
                       {anzahl[k.id] ?? 0} Dateien{zusatz(k.name)}
                     </span>
@@ -77,7 +81,7 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
             {leer.length > 0 && (
               <details className="text-sm">
                 <summary className="cursor-pointer text-zinc-500">{leer.length} Kurse ohne Dateien</summary>
-                <ul className="mt-2 flex flex-col divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white px-4 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
+                <ul className="mt-2 flex flex-col divide-y divide-zinc-200 rounded-2xl border border-zinc-200 bg-white px-4 dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
                   {leer.map((k) => (
                     <li key={k.id} className="flex items-center gap-3 py-2">
                       <Link href={`/material/${k.id}`} className="min-w-0 flex-1 truncate" title={k.name}>

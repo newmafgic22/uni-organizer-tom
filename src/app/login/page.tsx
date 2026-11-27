@@ -2,13 +2,16 @@ import { passwortLogin, sendeLink } from "./actions";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ status?: string; modus?: string }> }) {
   const { status, modus } = await searchParams;
-  const input = "rounded-lg border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
-  const knopf = "rounded-lg bg-sky-600 px-3 py-2 font-medium text-white hover:bg-sky-700";
+  const input = "eingabe";
+  const knopf = "knopf !py-2.5";
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Uni-Organizer</h1>
-        <p className="text-zinc-500">Login per E-Mail-Link, kein Passwort.</p>
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-accent-500 to-violet-500 text-2xl font-bold text-white shadow-lg shadow-accent-500/25">U</span>
+        <div>
+          <h1 className="seitentitel">Uni-Organizer</h1>
+          <p className="text-zinc-500">Schön, dass du da bist.</p>
+        </div>
       </div>
       {modus === "passwort" ? (
         <form action={passwortLogin} className="karte flex flex-col gap-3">
@@ -29,8 +32,8 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
         <form action={sendeLink} className="karte flex flex-col gap-3">
           <label className="text-sm font-medium" htmlFor="email">E-Mail</label>
           <input id="email" name="email" type="email" required autoComplete="email"
-            className="rounded-lg border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700" />
-          <button className="rounded-lg bg-sky-600 px-3 py-2 font-medium text-white hover:bg-sky-700">Login-Link schicken</button>
+            className="eingabe" />
+          <button className="knopf !py-2.5">Login-Link schicken</button>
           {status === "limit" && <p className="text-sm text-red-600">Zu viele Mails in kurzer Zeit (Supabase-Limit). Bitte ca. eine Stunde warten oder den letzten Link benutzen.</p>}
           {status === "fehler" && <p className="text-sm text-red-600">Das hat nicht geklappt. Bitte nochmal versuchen.</p>}
           {status === "abgelaufen" && <p className="text-sm text-red-600">Der Link war schon benutzt oder abgelaufen. Fordere einen neuen an.</p>}

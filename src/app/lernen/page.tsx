@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { requireUser } from "@/lib/supabase/server";
-import { STATUS_TEXT, anzeigeName, kurzTitel } from "@/lib/lernen";
+import { STATUS_TEXT, anzeigeName, kurzTitel, sehrKurzTitel } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 import { ladeWiederholen } from "@/lib/wiederholen";
 import { fmtDatum } from "@/lib/zeit";
+import { kurz, kursFarbe } from "@/lib/farben";
 import { sofortBearbeiten, nochmal } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -55,17 +56,22 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">Lernen</h1>
-          <Link href="/lernen/wiederholen" className="rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white">
-            🔁 Heute wiederholen
-          </Link>
-          {schwach > 0 && (
-            <Link href="/lernen/wiederholen?schwach=1" className="rounded-md border border-red-500 px-3 py-1.5 text-sm text-red-600">
-              Schwächen üben ({schwach})
+      <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="seitentitel">Lernen</h1>
+
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {schwach > 0 && (
+              <Link href="/lernen/wiederholen?schwach=1" className="knopf-2 !border-red-300 !text-red-600 dark:!border-red-500/40 dark:!text-red-400">
+                Schwächen üben ({schwach})
+              </Link>
+            )}
+            <Link href="/lernen/wiederholen" className="knopf">
+              Heute wiederholen
             </Link>
-          )}
+          </div>
         </div>
         {hinweis === "sofort-voll" && (
           <p className="karte text-sm text-amber-600">Es sind schon 2 Themen vorgezogen. Warte, bis die fertig sind.</p>
@@ -77,80 +83,111 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
           </p>
         )}
         {wartend > 0 && (
-          <p className="text-sm text-zinc-500">
-            {wartend} Thema/Themen in der Warteschlange. Der Lernlauf arbeitet sie nacheinander ab und macht nach einem Claude-Limit automatisch weiter.
-            Reihenfolge: vorgezogene zuerst, dann nach Klausurtermin.
+          <p className="flex items-start gap-2 rounded-2xl border border-accent-200 bg-accent-50 px-4 py-3 text-sm text-accent-900 dark:border-accent-500/30 dark:bg-accent-500/10 dark:text-accent-200">
+            <span className="mt-1 h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent-500" aria-hidden />
+            <span>
+              {wartend} {wartend === 1 ? "Thema" : "Themen"} in der Warteschlange. Der Lernlauf arbeitet sie nacheinander ab (vorgezogene zuerst, dann nach
+              Klausurtermin) und macht nach einem Claude-Limit automatisch weiter.
+            </span>
           </p>
         )}
-        {reihen.map(([kurs, liste]) => (
-          <section key={kurs} className="karte">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-semibold">{kurs}</h2>
-              {liste.some((t) => t.status === "fertig") && (
-                <span className="flex gap-3 text-sm">
-                  <Link href={`/lernen/wiederholen?neu=1&kurs=${liste[0].course_id}`} className="text-sky-600">
-                    Kurs üben
-                  </Link>
-                  <Link href={`/lernen/probeklausur?kurs=${liste[0].course_id}`} className="text-sky-600">
-                    Probeklausur
-                  </Link>
-                  <Link href={`/lernen/kurs/${liste[0].course_id}/druck`} className="text-sky-600">
-                    Lernzettel (PDF)
-                  </Link>
+        {reihen.map(([kurs, liste], i) => {
+          const farbe = kursFarbe(kurs);
+          const fertig = liste.filter((t) => t.status === "fertig");
+          const summe = fertig.reduce((a, t) => ({ s: a.s + (stand[t.id]?.sitzt ?? 0), n: a.n + (stand[t.id]?.n ?? 0) }), { s: 0, n: 0 });
+          const p = summe.n ? Math.round((summe.s / summe.n) * 100) : 0;
+          const kid = liste[0].course_id;
+          return (
+            <details key={kurs} open={i === 0} className="karte group !p-0 overflow-hidden">
+              <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: farbe }} aria-hidden>
+                  {kurz(kurs).slice(0, 2)}
                 </span>
-              )}
-            </div>
-            {liste[0]?.klausur_am && (
-              <p className="mb-2 text-xs text-zinc-500">Klausur: {fmtDatum(new Date(liste[0].klausur_am))}</p>
-            )}
-            <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {liste
-                .sort((a, b) => natSort(a.titel, b.titel))
-                .map((t) => (
-                  <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
-                    <Link href={`/lernen/${t.id}`} className="min-w-0 flex-1 break-words hover:underline" title={t.titel}>
-                      {kurzTitel(t.titel)}
-                    </Link>
-                    {t.status === "fertig" && stand[t.id] && (
-                      <span className="flex items-center gap-1.5 text-xs text-zinc-500" title={`${stand[t.id].geuebt} von ${stand[t.id].n} Fragen geübt`}>
-                        <span className="h-1.5 w-16 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                          <span
-                            className="block h-full bg-emerald-500"
-                            style={{ width: `${Math.round((stand[t.id].sitzt / stand[t.id].n) * 100)}%` }}
-                          />
-                        </span>
-                        {stand[t.id].sitzt}/{stand[t.id].n} sitzen
-                      </span>
-                    )}
-                    <span
-                      className={`rounded-md px-2 py-0.5 text-xs ${
-                        t.status === "fertig"
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100"
-                          : t.status === "fehler"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                            : "bg-zinc-100 dark:bg-zinc-800"
-                      }`}
-                      title={t.fehler ?? undefined}
-                    >
-                      {t.sofort && t.status === "wartet" ? "vorgezogen" : STATUS_TEXT[t.status]}
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-semibold leading-snug" title={kurs}>{kurz(kurs)}</h2>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="balken h-1.5 w-full max-w-48">
+                      <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${p}%`, background: farbe }} />
                     </span>
-                    {t.status === "wartet" && !t.sofort && (
-                      <form action={sofortBearbeiten}>
-                        <input type="hidden" name="id" value={t.id} />
-                        <button className="text-xs text-sky-600 underline">als Nächstes</button>
-                      </form>
-                    )}
-                    {t.status === "fehler" && (
-                      <form action={nochmal}>
-                        <input type="hidden" name="id" value={t.id} />
-                        <button className="text-xs text-sky-600 underline">nochmal versuchen</button>
-                      </form>
-                    )}
-                  </li>
-                ))}
-            </ul>
-          </section>
-        ))}
+                    <span className="text-xs text-zinc-500 tabular-nums">{p} %</span>
+                  </div>
+                </div>
+                {liste[0]?.klausur_am && (
+                  <span className="hidden text-sm text-zinc-500 sm:block" title={`Klausur ${fmtDatum(new Date(liste[0].klausur_am))}`}>
+                    Klausur in <b className="text-zinc-800 dark:text-zinc-200">{Math.max(0, Math.ceil((new Date(liste[0].klausur_am).getTime() - Date.now()) / 86_400_000))}</b> Tagen
+                  </span>
+                )}
+                <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-zinc-400 transition-transform group-open:rotate-180" aria-hidden>
+                  <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </summary>
+              <div className="border-t border-zinc-100 px-4 pb-3 sm:px-5 dark:border-zinc-800">
+                {fertig.length > 0 && (
+                  <div className="flex flex-wrap gap-2 py-3">
+                    <Link href={`/lernen/wiederholen?neu=1&kurs=${kid}`} className="knopf !py-1.5">
+                      Kurs üben
+                    </Link>
+                    <Link href={`/lernen/probeklausur?kurs=${kid}`} className="knopf-2 !py-1.5">
+                      Probeklausur
+                    </Link>
+                    <Link href={`/lernen/kurs/${kid}/druck`} className="knopf-2 !py-1.5">
+                      Lernzettel (PDF)
+                    </Link>
+                  </div>
+                )}
+                <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                  {liste
+                    .sort((a, b) => natSort(a.titel, b.titel))
+                    .map((t) => {
+                      const q = stand[t.id];
+                      const tp = q?.n ? Math.round((q.sitzt / q.n) * 100) : 0;
+                      return (
+                        <li key={t.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
+                          <Link href={`/lernen/${t.id}`} className="min-w-0 flex-1 truncate hover:text-accent-600 dark:hover:text-accent-400" title={t.titel}>
+                            <span className="font-medium">{kurz(sehrKurzTitel(t.titel))}</span>
+                            {kurzTitel(t.titel) !== sehrKurzTitel(t.titel) && (
+                              <span className="text-sm text-zinc-500"> · {kurzTitel(t.titel).slice(sehrKurzTitel(t.titel).length).replace(/^\s*[-–]\s*/, "")}</span>
+                            )}
+                          </Link>
+                          {t.status === "fertig" && q && (
+                            <span className="balken h-1.5 w-16 shrink-0 sm:w-24" title={`${q.sitzt} von ${q.n} Fragen sitzen`}>
+                              <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${tp}%`, background: farbe }} />
+                            </span>
+                          )}
+                          {t.status !== "fertig" && (
+                            <span
+                              className={`chip ${
+                                t.status === "fehler"
+                                  ? "!bg-red-100 !text-red-700 dark:!bg-red-500/15 dark:!text-red-300"
+                                  : t.status === "laeuft"
+                                    ? "!bg-accent-100 !text-accent-700 dark:!bg-accent-500/15 dark:!text-accent-300"
+                                    : ""
+                              }`}
+                              title={t.fehler ?? undefined}
+                            >
+                              {t.sofort && t.status === "wartet" ? "vorgezogen" : STATUS_TEXT[t.status]}
+                            </span>
+                          )}
+                          {t.status === "wartet" && !t.sofort && (
+                            <form action={sofortBearbeiten}>
+                              <input type="hidden" name="id" value={t.id} />
+                              <button className="text-xs font-medium text-accent-600 hover:underline dark:text-accent-400">als Nächstes</button>
+                            </form>
+                          )}
+                          {t.status === "fehler" && (
+                            <form action={nochmal}>
+                              <input type="hidden" name="id" value={t.id} />
+                              <button className="text-xs font-medium text-accent-600 hover:underline dark:text-accent-400">nochmal versuchen</button>
+                            </form>
+                          )}
+                        </li>
+                      );
+                    })}
+                </ul>
+              </div>
+            </details>
+          );
+        })}
       </main>
     </>
   );

@@ -2,36 +2,105 @@
 
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  @apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+/* Design-Grundlage: kühles Neutralgrau + Indigo-Akzent, hell und dunkel automatisch.
+   "zinc" wird hier umdefiniert, damit alle bestehenden Klassen automatisch die neuen Töne bekommen. */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-zinc-50: #f6f7f9;
+  --color-zinc-100: #eef0f4;
+  --color-zinc-200: #e3e6ec;
+  --color-zinc-300: #cdd2db;
+  --color-zinc-400: #9aa2b1;
+  --color-zinc-500: #6b7385;
+  --color-zinc-600: #4d5466;
+  --color-zinc-700: #333949;
+  --color-zinc-800: #242836;
+  --color-zinc-900: #171a24;
+  --color-zinc-950: #0e1017;
+
+  --color-accent-50: #eef2ff;
+  --color-accent-100: #e0e7ff;
+  --color-accent-200: #c7d2fe;
+  --color-accent-300: #a5b4fc;
+  --color-accent-400: #818cf8;
+  --color-accent-500: #6366f1;
+  --color-accent-600: #4f46e5;
+  --color-accent-700: #4338ca;
+  --color-accent-800: #3730a3;
+  --color-accent-900: #312e81;
+  --color-accent-950: #1e1b4b;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* PC / iPad quer: Platz für die Seitenleiste links */
+@media (min-width: 1024px) {
+  body:has(.seitenleiste) { padding-left: 15rem; }
+}
 /* Handy: Platz für die Navigationsleiste unten */
 @media (max-width: 639px) {
-  body { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+  body:has(.seitenleiste) { padding-bottom: calc(4.25rem + env(safe-area-inset-bottom)); }
 }
 
+/* Bausteine */
 .karte {
-  @apply rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900;
+  @apply min-w-0 rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_1px_2px_rgb(16_24_40/0.04)] sm:p-5 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none;
+}
+.karte-link {
+  @apply transition hover:border-accent-300 hover:shadow-md dark:hover:border-accent-700;
+}
+.seitentitel {
+  @apply text-2xl font-semibold tracking-tight sm:text-3xl;
+}
+.abschnitt {
+  @apply text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400;
+}
+.knopf {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent-600 px-3.5 py-2 text-sm font-medium whitespace-nowrap text-white shadow-sm transition hover:bg-accent-700 active:scale-[0.98] dark:bg-accent-500 dark:hover:bg-accent-400;
+}
+.knopf-2 {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium whitespace-nowrap text-zinc-700 transition hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700;
+}
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300;
+}
+.eingabe {
+  @apply w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 outline-none transition focus:border-accent-500 focus:ring-4 focus:ring-accent-500/15 dark:border-zinc-700 dark:bg-zinc-900;
+}
+.balken {
+  @apply relative block overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800;
 }
 
 /* Markdown-Zusammenfassungen */
-.prosa h1 { font-size: 1.4rem; font-weight: 600; margin: 1rem 0 0.5rem; }
-.prosa h2 { font-size: 1.2rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
-.prosa h3 { font-size: 1.05rem; font-weight: 600; margin: 1rem 0 0.4rem; }
-.prosa p { margin: 0.5rem 0; line-height: 1.6; }
+.prosa { line-height: 1.65; }
+.prosa > :first-child { margin-top: 0; }
+.prosa h1 { font-size: 1.45rem; font-weight: 650; letter-spacing: -0.01em; margin: 1.25rem 0 0.5rem; }
+.prosa h2 { font-size: 1.2rem; font-weight: 650; margin: 1.5rem 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid rgb(127 127 127 / 0.18); }
+.prosa h3 { font-size: 1.05rem; font-weight: 600; margin: 1.1rem 0 0.4rem; }
+.prosa p { margin: 0.55rem 0; }
 .prosa ul { list-style: disc; padding-left: 1.4rem; margin: 0.5rem 0; }
 .prosa ol { list-style: decimal; padding-left: 1.4rem; margin: 0.5rem 0; }
-.prosa li { margin: 0.2rem 0; line-height: 1.55; }
+.prosa li { margin: 0.25rem 0; }
+.prosa li::marker { color: var(--color-accent-500); }
+.prosa strong { font-weight: 650; }
 .prosa code { font-family: ui-monospace, monospace; font-size: 0.9em; background: rgb(127 127 127 / 0.12); padding: 0 0.25rem; border-radius: 0.25rem; }
-.prosa table { border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
-.prosa th, .prosa td { border: 1px solid rgb(127 127 127 / 0.4); padding: 0.3rem 0.5rem; text-align: left; vertical-align: top; }
-.prosa blockquote { border-left: 3px solid rgb(127 127 127 / 0.4); padding-left: 0.75rem; color: rgb(113 113 122); }
+.prosa table { border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; display: block; overflow-x: auto; }
+.prosa th, .prosa td { border: 1px solid rgb(127 127 127 / 0.25); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+.prosa th { background: rgb(127 127 127 / 0.08); font-weight: 600; }
+.prosa blockquote { border-left: 3px solid var(--color-accent-400); background: rgb(99 102 241 / 0.06); padding: 0.4rem 0.75rem; border-radius: 0 0.5rem 0.5rem 0; color: inherit; }
 
 @media print {
-  header, nav { display: none !important; }
+  header, nav, aside { display: none !important; }
   .druck { max-width: none; padding: 0; }
   .seitenumbruch { break-before: page; }
-  body { background: white !important; color: black !important; padding-bottom: 0 !important; }
+  .karte { box-shadow: none !important; }
+  body { background: white !important; color: black !important; padding: 0 !important; }
 }

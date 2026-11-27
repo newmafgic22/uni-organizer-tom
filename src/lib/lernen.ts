@@ -97,6 +97,7 @@ export const kurzTitel = (titel: string) =>
     .replace(/^(\d+)\s+\S+\s+H[WS]{2}\s?20\d\d\s+/i, "$1 ")
     .replace(/^[A-Z]{2,5} (\d+) H[WS]{2}\s?20\d\d /i, "$1 ")
     .replace(/\s*\((?:Update|Stand)[^)]*\)/gi, "") // "(Update 09.09.2026)"
+    .replace(/(-?)a?amp;\s*/g, "$1 & ") // kaputtes "&amp;" aus Dateinamen
     .replace(/(^|\+\s*)[A-Z]{3,5}\s+(?=Vorlesung|Übung|Tutorium)/g, "$1") // "GVWL Vorlesung 01" → "Vorlesung 01"
     .replace(/^[A-Z][a-z]{2,4}H[WS]S20\d\d(?=[A-Z])/, "") // "GvwlHws2026Kapitel23…" → "Kapitel23…"
     .replace(/^[A-Z][a-z]{2,4}Hws20\d\d(?=[A-Z])/, "")

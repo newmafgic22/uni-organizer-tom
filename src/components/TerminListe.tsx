@@ -22,7 +22,7 @@ export function TerminZeile({ t }: { t: Termin }) {
             {t.titel}
           </a>
         ) : (
-          <div className="font-medium leading-snug break-words">{t.quelle === "portal2" || t.quelle === "ilias" ? anzeigeName(t.titel) : t.titel}</div>
+          <div className="font-medium leading-snug break-words">{t.quelle === "portal2" || t.quelle === "ilias" || t.kategorie === "Prüfung" ? anzeigeName(t.titel) : t.titel}</div>
         )}
         {t.ort && <div className="text-sm text-zinc-500 dark:text-zinc-400 break-words">{t.ort}</div>}
       </div>

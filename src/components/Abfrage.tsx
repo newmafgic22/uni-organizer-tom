@@ -40,6 +40,7 @@ export function Abfrage({
   const [ergebnis, setErgebnis] = useState<Record<number, string>>({});
   const [nurMc, setNurMc] = useState(false);
   const [gewaehlt, setGewaehlt] = useState<number[]>([]);
+  const [nichtGespeichert, setNichtGespeichert] = useState(0);
   const mcAnzahl = karten.filter((x) => x.optionen).length;
 
   const liste = useMemo(() => {
@@ -74,7 +75,10 @@ export function Abfrage({
     if (!k) return;
     setErgebnis((e) => ({ ...e, [k.idx]: b }));
     const tid = k.themaId ?? themaId;
-    if (tid) antwortSpeichern(tid, "katalog", k.nr, k.afb, b);
+    if (tid)
+      antwortSpeichern(tid, "katalog", k.nr, k.afb, b)
+        .then((r) => !r?.ok && setNichtGespeichert((n) => n + 1))
+        .catch(() => setNichtGespeichert((n) => n + 1));
     setOffen(false);
     setGewaehlt([]);
     setPos((p) => p + 1);
@@ -95,6 +99,11 @@ export function Abfrage({
 
   return (
     <div className="flex flex-col gap-3">
+      {nichtGespeichert > 0 && (
+        <p className="rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+          {nichtGespeichert} Antwort(en) konnten nicht gespeichert werden (Internet weg?). Einfach weitermachen, die Frage kommt dann später nochmal.
+        </p>
+      )}
       {probe && !fertig && (
         <div className={`sticky top-14 z-10 self-end rounded-md px-3 py-1 text-sm font-semibold tabular-nums ${rest < 300 ? "bg-red-600 text-white" : "bg-zinc-100 dark:bg-zinc-800"}`}>
           ⏱ {Math.floor(rest / 60)}:{String(rest % 60).padStart(2, "0")}

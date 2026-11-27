@@ -76,6 +76,7 @@ test("kurzTitel", () => {
   assert.equal(kurzTitel("WiPäd Grundlagen"), "WiPäd Grundlagen");
   assert.equal(kurzTitel("GvwlHws2026Kapitel23VGRKomplett"), "Kapitel 23 VGR Komplett");
   assert.equal(kurzTitel("GvwlHws2026Einfuehrung"), "Einfuehrung");
+  assert.equal(kurzTitel("GWP 10 HWS 2026 Finanz-aamp; Wirtschaftsbildung"), "10 Finanz- & Wirtschaftsbildung");
   assert.equal(kurzTitel("Vorlesung 05 (Teil 1)"), "Vorlesung 05 (Teil 1)");
   assert.equal(kurzTitel("01 Analysis HWS 2026 Mengen"), "01 Mengen");
   assert.equal(sehrKurzTitel("GVWL Vorlesung 02 - Loesung und Erlaeuterungen zum Zahlenbeispiel"), "Vorlesung 02");

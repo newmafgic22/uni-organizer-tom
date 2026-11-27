@@ -44,7 +44,7 @@ export function baueLernplan(kurse: PlanKurs[], belegt: Termin[], jetzt = new Da
       if (teil?.length) {
         tagesPlan.push({
           tag,
-          titel: `📚 ${kurz(k.name)}: ${kurzName(teil.map((t) => sehrKurzTitel(t.titel)).join(", ")).replace(/(VL \d+(?: \(Teil \d\))?), VL /g, "$1, ")}`,
+          titel: `📚 ${kurz(k.name)}: ${kurzName([...new Set(teil.map((t) => sehrKurzTitel(t.titel)))].join(", ")).replace(/, VL /g, ", ")}`,
           beschreibung: `Zusammenfassung lesen, dann Abfragekatalog.\n${teil.map((t) => `${app}/lernen/${t.id}`).join("\n")}\nDanach: ${app}/lernen/wiederholen`,
           dauer: BLOCK_MIN * Math.min(teil.length, 2),
         });

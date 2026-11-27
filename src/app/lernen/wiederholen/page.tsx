@@ -32,9 +32,14 @@ export default async function Wiederholen({ searchParams }: { searchParams: Prom
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
         <Link href="/lernen" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">← Lernen</Link>
         <h1 className="seitentitel">{schwach === "1" ? "Schwächen üben" : neu === "1" ? "Wiederholen + neue Fragen" : "Heute wiederholen"}</h1>
-        <p className="text-sm text-zinc-500">
-          {faellig} Fragen fällig · {neue} noch nie geübt. Nicht gewusst kommt heute nochmal, teilweise morgen, gewusst nach 1, 3, 7, 14 Tagen (vor der Klausur kürzer).
-        </p>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="chip">{faellig} fällig</span>
+          <span className="chip">{neue} noch nie geübt</span>
+          <details className="w-full text-zinc-500">
+            <summary className="cursor-pointer text-xs">Wie funktioniert das?</summary>
+            <p className="mt-1 text-xs">Nicht gewusst kommt heute nochmal, teilweise morgen, gewusst nach 1, 3, 7, 14 Tagen (vor der Klausur kürzer).</p>
+          </details>
+        </div>
         {karten.length ? (
           <Abfrage
             karten={karten}

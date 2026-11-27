@@ -6,6 +6,7 @@ import { anzeigeName, klausurFuer, sehrKurzTitel } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 import { ladeWiederholen, type Status } from "@/lib/wiederholen";
 import { plusTage, tagKey, tagStart } from "@/lib/zeit";
+import { kurz as kurzName } from "@/lib/farben";
 
 export type PlanKurs = { id: string; name: string; klausur: Date; themen: { id: string; titel: string }[] };
 
@@ -13,7 +14,7 @@ const BLOCK_MIN = 90;
 const FENSTER = [10, 22]; // Lernblöcke zwischen 10 und 22 Uhr (Berlin)
 const MAX_BLOCKS_TAG = 3;
 
-const kurz = (name: string) => anzeigeName(name);
+const kurz = (name: string) => kurzName(anzeigeName(name));
 
 export function baueLernplan(kurse: PlanKurs[], belegt: Termin[], jetzt = new Date(), app = ""): Termin[] {
   const heute = tagKey(jetzt);
@@ -43,14 +44,14 @@ export function baueLernplan(kurse: PlanKurs[], belegt: Termin[], jetzt = new Da
       if (teil?.length) {
         tagesPlan.push({
           tag,
-          titel: `📚 ${kurz(k.name)}: ${teil.map((t) => sehrKurzTitel(t.titel)).join(" + ")}`,
+          titel: `📚 ${kurz(k.name)}: ${kurzName(teil.map((t) => sehrKurzTitel(t.titel)).join(", ")).replace(/(VL \d+(?: \(Teil \d\))?), VL /g, "$1, ")}`,
           beschreibung: `Zusammenfassung lesen, dann Abfragekatalog.\n${teil.map((t) => `${app}/lernen/${t.id}`).join("\n")}\nDanach: ${app}/lernen/wiederholen`,
           dauer: BLOCK_MIN * Math.min(teil.length, 2),
         });
       } else {
         tagesPlan.push({
           tag,
-          titel: `🔁 ${kurz(k.name)}: fällige Fragen wiederholen`,
+          titel: `🔁 ${kurz(k.name)}: wiederholen`,
           beschreibung: `${app}/lernen/wiederholen?kurs=${k.id}`,
           dauer: 45,
         });

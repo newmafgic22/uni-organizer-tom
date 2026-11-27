@@ -32,7 +32,7 @@ function Kachel({ l, kurs }: { l: LinkEintrag; kurs?: string }) {
         <div className="text-xs text-zinc-500 break-words">
           {KATEGORIE_TEXT[k]}
           {kurs ? ` · ${kurs}` : ""}
-          {l.fundstelle ? ` · gefunden in ${l.fundstelle}` : ""}
+
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1 text-xs">

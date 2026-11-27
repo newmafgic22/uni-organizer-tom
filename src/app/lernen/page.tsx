@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { requireUser } from "@/lib/supabase/server";
-import { STATUS_TEXT, anzeigeName, kurzTitel } from "@/lib/lernen";
+import { STATUS_TEXT, anzeigeName, kurzTitel, sehrKurzTitel } from "@/lib/lernen";
 import { natSort } from "@/lib/material";
 import { ladeWiederholen } from "@/lib/wiederholen";
 import { fmtDatum } from "@/lib/zeit";
-import { kursFarbe } from "@/lib/farben";
+import { kurz, kursFarbe } from "@/lib/farben";
 import { sofortBearbeiten, nochmal } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -60,9 +60,7 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="seitentitel">Lernen</h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              {themen.filter((t) => t.status === "fertig").length} Themen bereit · {status.filter((x) => x.serie >= 1).length} von {status.length} Fragen sitzen
-            </p>
+
           </div>
           <div className="flex flex-wrap gap-2">
             {schwach > 0 && (
@@ -103,18 +101,22 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
             <details key={kurs} open={i === 0} className="karte group !p-0 overflow-hidden">
               <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 [&::-webkit-details-marker]:hidden">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: farbe }} aria-hidden>
-                  {kurs.replace(/^(Grundlagen der|Einführung in die)\s+/i, "").charAt(0)}
+                  {kurz(kurs).slice(0, 2)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold leading-snug">{kurs}</h2>
-                  <p className="text-xs text-zinc-500">
-                    {liste[0]?.klausur_am ? `Klausur ${fmtDatum(new Date(liste[0].klausur_am))} · ` : ""}
-                    {fertig.length}/{liste.length} Themen · {p} % sitzen
-                  </p>
-                  <span className="balken mt-2 h-1.5 max-w-xs">
-                    <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${p}%`, background: farbe }} />
-                  </span>
+                  <h2 className="font-semibold leading-snug" title={kurs}>{kurz(kurs)}</h2>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="balken h-1.5 w-full max-w-48">
+                      <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${p}%`, background: farbe }} />
+                    </span>
+                    <span className="text-xs text-zinc-500 tabular-nums">{p} %</span>
+                  </div>
                 </div>
+                {liste[0]?.klausur_am && (
+                  <span className="hidden text-sm text-zinc-500 sm:block" title={`Klausur ${fmtDatum(new Date(liste[0].klausur_am))}`}>
+                    Klausur in <b className="text-zinc-800 dark:text-zinc-200">{Math.max(0, Math.ceil((new Date(liste[0].klausur_am).getTime() - Date.now()) / 86_400_000))}</b> Tagen
+                  </span>
+                )}
                 <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-zinc-400 transition-transform group-open:rotate-180" aria-hidden>
                   <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -141,17 +143,15 @@ export default async function Lernen({ searchParams }: { searchParams: Promise<{
                       const tp = q?.n ? Math.round((q.sitzt / q.n) * 100) : 0;
                       return (
                         <li key={t.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
-                          <Link href={`/lernen/${t.id}`} className="min-w-0 flex-1 break-words font-medium hover:text-accent-600 dark:hover:text-accent-400" title={t.titel}>
-                            {kurzTitel(t.titel)}
+                          <Link href={`/lernen/${t.id}`} className="min-w-0 flex-1 truncate hover:text-accent-600 dark:hover:text-accent-400" title={t.titel}>
+                            <span className="font-medium">{kurz(sehrKurzTitel(t.titel))}</span>
+                            {kurzTitel(t.titel) !== sehrKurzTitel(t.titel) && (
+                              <span className="text-sm text-zinc-500"> · {kurzTitel(t.titel).slice(sehrKurzTitel(t.titel).length).replace(/^\s*[-–]\s*/, "")}</span>
+                            )}
                           </Link>
                           {t.status === "fertig" && q && (
-                            <span className="flex items-center gap-2 text-xs text-zinc-500 tabular-nums" title={`${q.geuebt} von ${q.n} Fragen geübt`}>
-                              <span className="balken h-1.5 w-16 sm:w-24">
-                                <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${tp}%`, background: farbe }} />
-                              </span>
-                              <span className="w-14 text-right">
-                                {q.sitzt}/{q.n}
-                              </span>
+                            <span className="balken h-1.5 w-16 shrink-0 sm:w-24" title={`${q.sitzt} von ${q.n} Fragen sitzen`}>
+                              <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${tp}%`, background: farbe }} />
                             </span>
                           )}
                           {t.status !== "fertig" && (

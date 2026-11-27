@@ -6,7 +6,7 @@ import { natSort, type Material } from "@/lib/material";
 import { anzeigeName } from "@/lib/lernen";
 import { fmtDatum, fmtZeit } from "@/lib/zeit";
 import { kursSichtbarkeit } from "./actions";
-import { kursFarbe } from "@/lib/farben";
+import { kurz, kursFarbe } from "@/lib/farben";
 
 export const dynamic = "force-dynamic";
 
@@ -66,10 +66,10 @@ export default async function MaterialSeite({ searchParams }: { searchParams: Pr
               {liste.map((k) => (
                 <li key={k.id} className="karte karte-link flex items-center gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-bold text-white" style={{ background: kursFarbe(anzeigeName(k.name)) }} aria-hidden>
-                    {anzeigeName(k.name).replace(/^(Grundlagen der|Einführung in die)\s+/i, "").charAt(0)}
+                    {kurz(anzeigeName(k.name)).slice(0, 2)}
                   </span>
                   <Link href={`/material/${k.id}`} className={`min-w-0 flex-1 ${k.ausgeblendet ? "text-zinc-400" : ""}`}>
-                    <span className="font-semibold leading-snug">{anzeigeName(k.name)}</span>
+                    <span className="font-semibold leading-snug">{kurz(anzeigeName(k.name))}</span>
                     <span className="block truncate text-xs text-zinc-500" title={k.name}>
                       {anzahl[k.id] ?? 0} Dateien{zusatz(k.name)}
                     </span>

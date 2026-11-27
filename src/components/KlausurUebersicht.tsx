@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Termin } from "@/lib/ical";
-import { kursFarbe } from "@/lib/farben";
+import { kurz, kursFarbe } from "@/lib/farben";
 import { fmtDatum, fmtZeit } from "@/lib/zeit";
 
 export type KlausurStand = {
@@ -15,7 +15,7 @@ export type KlausurStand = {
 function tageBis(d: Date) {
   return Math.ceil((d.getTime() - Date.now()) / 86_400_000);
 }
-const ohneKlausur = (t: string) => t.replace(/^Klausur\s+/, "");
+const ohneKlausur = (t: string) => t.replace(/^Klausur:?\s+/i, "");
 const prozent = (s: KlausurStand) => (s.fragen ? Math.round((s.sitzt / s.fragen) * 100) : 0);
 
 /** Große Karte für die nächste Klausur: Countdown, Lernstand, direkt üben. */
@@ -46,7 +46,7 @@ export function KlausurHero({ s }: { s?: KlausurStand }) {
             </span>
             <span className="text-lg text-zinc-500">{t === 1 ? "Tag" : "Tage"}</span>
           </div>
-          <div className="mt-2 text-lg leading-snug font-semibold">{ohneKlausur(s.klausur.titel)}</div>
+          <div className="mt-2 text-xl leading-snug font-semibold" title={ohneKlausur(s.klausur.titel)}>{kurz(s.klausur.titel)}</div>
           <div className="text-sm text-zinc-500">
             {fmtDatum(s.klausur.start)}
             {s.klausur.ganztags ? "" : `, ${fmtZeit(s.klausur.start)} Uhr`}
@@ -81,13 +81,16 @@ export function KlausurListe({ liste }: { liste: KlausurStand[] }) {
           <>
             <div className="flex items-center gap-2.5">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: farbe }} aria-hidden />
-              <span className="min-w-0 flex-1 truncate font-medium">{ohneKlausur(s.klausur.titel)}</span>
-              <span className="shrink-0 text-xs text-zinc-500 tabular-nums">
-                {fmtDatum(s.klausur.start).replace(/\d{4}$/, "")} · <b className="font-semibold text-zinc-700 dark:text-zinc-300">{t} T.</b>
+              <span className="min-w-0 flex-1 truncate font-medium" title={ohneKlausur(s.klausur.titel)}>{kurz(s.klausur.titel)}</span>
+              <span className="shrink-0 text-sm text-zinc-500 tabular-nums" title={fmtDatum(s.klausur.start)}>
+                in <b className="font-semibold text-zinc-800 dark:text-zinc-200">{t}</b> Tagen
               </span>
             </div>
-            <div className="mt-1.5 pl-5">
-              <Fortschritt s={s} p={prozent(s)} farbe={farbe} />
+            <div className="mt-2 flex items-center gap-2 pl-5">
+              <div className="flex-1">
+                <Fortschritt s={s} p={prozent(s)} farbe={farbe} />
+              </div>
+              <span className="w-9 text-right text-xs text-zinc-500 tabular-nums">{s.kursId && s.themenGesamt ? `${prozent(s)} %` : ""}</span>
             </div>
           </>
         );
@@ -108,19 +111,18 @@ export function KlausurListe({ liste }: { liste: KlausurStand[] }) {
 }
 
 function Fortschritt({ s, p, farbe, gross = false }: { s: KlausurStand; p: number; farbe: string; gross?: boolean }) {
-  if (!s.kursId || !s.themenGesamt) return <div className={`${gross ? "mt-4" : ""} text-xs text-zinc-500`}>Noch kein Lernmaterial</div>;
+  if (!s.kursId || !s.themenGesamt) return <div className={`${gross ? "mt-4" : ""} text-xs text-zinc-400`}>noch kein Lernmaterial</div>;
   return (
     <div className={gross ? "mt-5" : ""}>
       <span className={`balken ${gross ? "h-2.5" : "h-1.5"}`}>
         <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.max(p, s.sitzt ? 2 : 0)}%`, background: farbe }} />
       </span>
-      <div className={`mt-1.5 flex justify-between gap-2 text-xs text-zinc-500 ${gross ? "sm:text-sm" : ""}`}>
-        <span>
-          {s.sitzt} von {s.fragen} Fragen sitzen
-          {s.themenFertig < s.themenGesamt ? ` · ${s.themenFertig}/${s.themenGesamt} Themen bereit` : ""}
-        </span>
-        <span className="font-semibold tabular-nums text-zinc-700 dark:text-zinc-300">{p} %</span>
-      </div>
+      {gross && (
+        <div className="mt-1.5 flex justify-between gap-2 text-sm text-zinc-500">
+          <span>gelernt</span>
+          <span className="font-semibold tabular-nums text-zinc-700 dark:text-zinc-300">{p} %</span>
+        </div>
+      )}
     </div>
   );
 }

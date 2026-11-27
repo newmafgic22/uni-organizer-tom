@@ -23,3 +23,23 @@ export function kursFarbe(name: string): string {
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return REST[h % REST.length];
 }
+
+/** Kurze, geläufige Namen für lange Kursnamen (überall in Texten ersetzbar). */
+const KURZ: [RegExp, string][] = [
+  [/(?:Klausur\s+)?Grundlagen der Volkswirtschaftslehre/gi, "VWL"],
+  [/(?:Einführung in die\s+)?Bildungspsychologie/gi, "Psychologie"],
+  [/Grundlagen der Wirtschaftsp[äa]dagogik/gi, "WiPäd"],
+  [/Quantitative Methoden/gi, "QM"],
+  [/Finanzmathematik/gi, "Finanzmathe"],
+];
+
+/** "Grundlagen der Volkswirtschaftslehre: Vorlesung 01 + Vorlesung 02" → "VWL: VL 01 + VL 02" */
+export function kurz(text: string): string {
+  let s = text.replace(/^Klausur:?\s+/i, "");
+  for (const [re, k] of KURZ) s = s.replace(re, k);
+  return s
+    .replace(/\bVorlesung\s+(\d)/g, "VL $1")
+    .replace(/\bÜBUNG\b/g, "Übung")
+    .replace(/\s+\|\s+Tutorium$/i, "")
+    .trim();
+}

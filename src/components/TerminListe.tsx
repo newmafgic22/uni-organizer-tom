@@ -1,5 +1,5 @@
 import { istKlausur, type Termin } from "@/lib/ical";
-import { kursFarbeBekannt } from "@/lib/farben";
+import { kurz, kursFarbeBekannt } from "@/lib/farben";
 import { fmtTag, fmtZeit, tagKey } from "@/lib/zeit";
 import { anzeigeName } from "@/lib/lernen";
 
@@ -11,7 +11,7 @@ const FARBE: Record<string, string> = {
 };
 
 export function TerminZeile({ t }: { t: Termin }) {
-  const titel = t.quelle === "portal2" || t.quelle === "ilias" || t.kategorie === "Prüfung" ? anzeigeName(t.titel) : t.titel;
+  const titel = kurz(t.quelle === "portal2" || t.quelle === "ilias" || t.kategorie === "Prüfung" ? anzeigeName(t.titel) : t.titel).replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, "");
   const farbe = kursFarbeBekannt(t.titel) ?? FARBE[t.quelle];
   const link = t.quelle === "lernplan" ? t.beschreibung?.match(/https?:\/\/\S+/)?.[0].replace(/^https?:\/\/[^/]+/, "") : undefined;
   return (
@@ -30,7 +30,7 @@ export function TerminZeile({ t }: { t: Termin }) {
         ) : (
           <div className="mt-0.5 font-medium leading-snug break-words">{titel}</div>
         )}
-        {t.ort && <div className="text-sm text-zinc-500 dark:text-zinc-400 break-words">{t.ort}</div>}
+        {t.ort && <div className="truncate text-xs text-zinc-500 dark:text-zinc-400" title={t.ort}>{t.ort.split(/[,(]/)[0]}</div>}
       </div>
     </li>
   );

@@ -28,9 +28,9 @@ export default async function Probeklausur({ searchParams }: { searchParams: Pro
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
-        <Link href="/lernen" className="text-sm text-zinc-500">← Lernen</Link>
-        <h1 className="text-2xl font-semibold">Probeklausur</h1>
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
+        <Link href="/lernen" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">← Lernen</Link>
+        <h1 className="seitentitel">Probeklausur</h1>
         <p className="text-sm text-zinc-500">
           {anzeigeName(k.name)} · {liste.length} Fragen aus {themen.length} Themen · {minuten} Minuten{mcBevorzugt ? " · vor allem Multiple Choice wie in der Klausur" : ""}.
           Offene Fragen bewertest du selbst ehrlich, MC wird automatisch bewertet. Bestanden ab 50 %.
@@ -42,10 +42,10 @@ export default async function Probeklausur({ searchParams }: { searchParams: Pro
             bestehen={50}
             ende={
               <div className="flex flex-wrap gap-2">
-                <a href={`/lernen/probeklausur?kurs=${k.id}`} className="rounded-md bg-sky-600 px-3 py-1 text-sm text-white">
+                <a href={`/lernen/probeklausur?kurs=${k.id}`} className="knopf !py-1.5">
                   Neue Probeklausur
                 </a>
-                <a href={`/lernen/wiederholen?kurs=${k.id}`} className="rounded-md border border-sky-600 px-3 py-1 text-sm text-sky-600">
+                <a href={`/lernen/wiederholen?kurs=${k.id}`} className="knopf-2 !py-1.5">
                   Fehler wiederholen
                 </a>
               </div>

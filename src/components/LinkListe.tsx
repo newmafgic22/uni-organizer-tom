@@ -20,14 +20,14 @@ const RANG: Kategorie[] = ["lerntool", "test", "uebung", "lernmodul", "video", "
 function Kachel({ l, kurs }: { l: LinkEintrag; kurs?: string }) {
   const k = kat(l.kategorie);
   return (
-    <li className="flex items-start gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+    <li className="flex items-start gap-3 rounded-xl border border-zinc-200 p-3 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/40">
       <span aria-hidden className="text-2xl leading-none">{KATEGORIE_ICON[k]}</span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <a href={l.url} target="_blank" rel="noreferrer" className="font-medium hover:underline break-words">
             {anzeigeName(l.url, l.titel)}
           </a>
-          {!l.gesehen && <span className="rounded bg-sky-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Neu</span>}
+          {!l.gesehen && <span className="rounded bg-accent-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">Neu</span>}
         </div>
         <div className="text-xs text-zinc-500 break-words">
           {KATEGORIE_TEXT[k]}
@@ -39,7 +39,7 @@ function Kachel({ l, kurs }: { l: LinkEintrag; kurs?: string }) {
         {!l.gesehen && (
           <form action={linkGesehen}>
             <input type="hidden" name="id" value={l.id} />
-            <button className="text-sky-600 underline">gesehen</button>
+            <button className="text-accent-600 underline">gesehen</button>
           </form>
         )}
         <form action={linkWichtig}>
@@ -83,7 +83,7 @@ export function WeitereLinks({ links }: { links: LinkEintrag[] }) {
             <ul className="mt-1 flex flex-col gap-1">
               {l.map((x) => (
                 <li key={x.id} className="flex flex-wrap items-center gap-x-2">
-                  <a href={x.url} target="_blank" rel="noreferrer" className="min-w-0 break-all text-sky-600 hover:underline">
+                  <a href={x.url} target="_blank" rel="noreferrer" className="min-w-0 break-all text-accent-600 hover:underline">
                     {anzeigeName(x.url, x.titel)}
                   </a>
                   {x.fundstelle && <span className="text-xs text-zinc-500">({x.fundstelle})</span>}

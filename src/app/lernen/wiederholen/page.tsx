@@ -29,9 +29,9 @@ export default async function Wiederholen({ searchParams }: { searchParams: Prom
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
-        <Link href="/lernen" className="text-sm text-zinc-500">← Lernen</Link>
-        <h1 className="text-2xl font-semibold">{schwach === "1" ? "Schwächen üben" : neu === "1" ? "Wiederholen + neue Fragen" : "Heute wiederholen"}</h1>
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
+        <Link href="/lernen" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">← Lernen</Link>
+        <h1 className="seitentitel">{schwach === "1" ? "Schwächen üben" : neu === "1" ? "Wiederholen + neue Fragen" : "Heute wiederholen"}</h1>
         <p className="text-sm text-zinc-500">
           {faellig} Fragen fällig · {neue} noch nie geübt. Nicht gewusst kommt heute nochmal, teilweise morgen, gewusst nach 1, 3, 7, 14 Tagen (vor der Klausur kürzer).
         </p>
@@ -40,11 +40,11 @@ export default async function Wiederholen({ searchParams }: { searchParams: Prom
             karten={karten}
             ende={
               <div className="flex flex-wrap gap-2">
-                <a href={`/lernen/wiederholen?neu=${neu ?? ""}${kurs ? `&kurs=${kurs}` : ""}`} className="rounded-md bg-sky-600 px-3 py-1 text-sm text-white">
+                <a href={`/lernen/wiederholen?neu=${neu ?? ""}${kurs ? `&kurs=${kurs}` : ""}`} className="knopf !py-1.5">
                   Weiter (neu laden)
                 </a>
                 {neu !== "1" && neue > 0 && (
-                  <a href={`/lernen/wiederholen?neu=1${kurs ? `&kurs=${kurs}` : ""}`} className="rounded-md border border-sky-600 px-3 py-1 text-sm text-sky-600">
+                  <a href={`/lernen/wiederholen?neu=1${kurs ? `&kurs=${kurs}` : ""}`} className="knopf-2 !py-1.5">
                     Neue Fragen lernen ({neue})
                   </a>
                 )}
@@ -55,7 +55,7 @@ export default async function Wiederholen({ searchParams }: { searchParams: Prom
           <div className="karte flex flex-col items-start gap-2">
             <p className="font-medium">Heute ist nichts fällig. 🎉</p>
             {neue > 0 ? (
-              <a href={`/lernen/wiederholen?neu=1${kurs ? `&kurs=${kurs}` : ""}`} className="rounded-md bg-sky-600 px-3 py-1.5 text-sm text-white">
+              <a href={`/lernen/wiederholen?neu=1${kurs ? `&kurs=${kurs}` : ""}`} className="knopf">
                 {neue} neue Fragen lernen
               </a>
             ) : (

@@ -29,13 +29,16 @@ export default async function Kalender({ searchParams }: { searchParams: Promise
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-6xl px-4 py-6 flex flex-col gap-4">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">Woche ab {fmtTagKurz(montag)}</h1>
-          <div className="flex items-center gap-2 text-sm">
-            <Link className="rounded-md border border-zinc-300 px-3 py-1.5 dark:border-zinc-700" href={`/kalender?w=${n - 1}`}>← zurück</Link>
-            <Link className="rounded-md border border-zinc-300 px-3 py-1.5 dark:border-zinc-700" href="/kalender">heute</Link>
-            <Link className="rounded-md border border-zinc-300 px-3 py-1.5 dark:border-zinc-700" href={`/kalender?w=${n + 1}`}>weiter →</Link>
+          <div>
+            <h1 className="seitentitel">Kalender</h1>
+            <p className="mt-1 text-sm text-zinc-500">Woche ab {fmtTagKurz(montag)}</p>
+          </div>
+          <div className="flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <Link className="rounded-lg px-3 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={`/kalender?w=${n - 1}`} aria-label="Woche zurück">←</Link>
+            <Link className={`rounded-lg px-3 py-1.5 font-medium ${n === 0 ? "bg-accent-50 text-accent-700 dark:bg-accent-500/15 dark:text-accent-300" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`} href="/kalender">Heute</Link>
+            <Link className="rounded-lg px-3 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800" href={`/kalender?w=${n + 1}`} aria-label="Woche weiter">→</Link>
           </div>
         </div>
         <Legende />
@@ -44,8 +47,11 @@ export default async function Kalender({ searchParams }: { searchParams: Promise
           {tage.map((k) => {
             const tagTermine = termine.filter((t) => t.start < tagStart(plusTage(k, 1)) && t.ende > tagStart(k));
             return (
-              <section key={k} className={`karte xl:p-3 ${k === heute ? "ring-2 ring-sky-500" : ""}`}>
-                <h2 className="text-sm font-semibold">{fmtTagKurz(k)}</h2>
+              <section key={k} className={`karte xl:!p-3 ${k === heute ? "!border-accent-400 ring-4 ring-accent-500/10 dark:!border-accent-500/60" : ""} ${k < heute ? "opacity-60" : ""}`}>
+                <h2 className={`flex items-center gap-2 text-sm font-semibold ${k === heute ? "text-accent-600 dark:text-accent-400" : ""}`}>
+                  {fmtTagKurz(k)}
+                  {k === heute && <span className="chip !bg-accent-100 !text-accent-700 dark:!bg-accent-500/20 dark:!text-accent-300">heute</span>}
+                </h2>
                 <TerminListe termine={tagTermine} leer="–" />
               </section>
             );

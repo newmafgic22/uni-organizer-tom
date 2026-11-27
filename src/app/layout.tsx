@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Uni-Organizer",
@@ -9,15 +12,15 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f7f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1017" },
   ],
   viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
+    <html lang="de" className={inter.variable}>
       <body className="antialiased min-h-dvh">{children}</body>
     </html>
   );

@@ -20,12 +20,12 @@ export default async function Einstellungen() {
   const host = h.get("host");
   const feed = settings ? `https://${host}/api/feed/${settings.feed_token}` : "";
 
-  const input = "w-full rounded-lg border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
+  const input = "eingabe";
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-3xl px-4 py-6 flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Einstellungen</h1>
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 lg:py-10 flex flex-col gap-4 sm:gap-5">
+        <h1 className="seitentitel">Einstellungen</h1>
 
         <section className="karte flex flex-col gap-3">
           <h2 className="font-semibold">Kalender-Quellen</h2>
@@ -49,7 +49,7 @@ export default async function Einstellungen() {
               <option value="sonstig">Sonstiger</option>
             </select>
             <input name="url" type="url" required placeholder="https://… (iCal-Link)" className={input} />
-            <button className="rounded-lg bg-sky-600 px-4 py-2 font-medium text-white hover:bg-sky-700">Hinzufügen</button>
+            <button className="knopf">Hinzufügen</button>
           </form>
         </section>
 

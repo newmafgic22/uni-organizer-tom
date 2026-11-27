@@ -26,7 +26,7 @@ export default async function Druck({ params }: { params: Promise<{ id: string }
       <Drucken />
       <div>
         <p className="text-sm">{kurs}</p>
-        <h1 className="text-2xl font-semibold">{t.titel}</h1>
+        <h1 className="seitentitel">{t.titel}</h1>
       </div>
       <section>
         <h2 className="text-xl font-semibold mb-2">1. Zusammenfassung</h2>

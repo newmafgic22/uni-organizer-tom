@@ -11,7 +11,7 @@ export function Kopieren({ text }: { text: string }) {
         setOk(true);
         setTimeout(() => setOk(false), 1500);
       }}
-      className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700 whitespace-nowrap"
+      className="knopf"
     >
       {ok ? "Kopiert ✓" : "Kopieren"}
     </button>
